@@ -1,10 +1,8 @@
 <html>
 <head>
     <style>
-    .footer {
-        font-family: Roboto;
-        font-size: 14px;
-        /* color: #CECECE; */
+    h1 {
+        font-family: "Noto Sans";
     }
 
     #tooltip {
@@ -32,25 +30,39 @@
         padding-top: 5px;
         margin-right: 25px;
     }
+
     </style>
+    <link rel="stylesheet" href="skeleton.css">
     <link href="https://fonts.googleapis.com/css?family=Noto+Sans:700|Raleway" rel="stylesheet">
     <script src="d3.js"></script>
 </head>
 <body>
-    <div class="chart-container"></div>
-    <div id="tooltip">
-        <h3></h3>
-        <div id="percent-diff"></div>
-        <div id="outflow"  class="flex">
-            <div class="left" id="outflow"></div>
-            <div class="right" id="outflow"></div>
+
+    <div class="container" style="max-width: 1000px;"></div>
+        <h1>net migration in the E.U.</h1>
+        <p>Population Migration by Country in 2015</p>
+
+        <div class="chart"></div>
+
+        <div id="tooltip">
+            <h3></h3>
+            <div id="percent-diff"></div>
+            <div id="outflow"  class="flex">
+                <div class="left" id="outflow"></div>
+                <div class="right" id="outflow"></div>
+            </div>
+            <div id="inflow" class="flex">
+                <div class="left"></div>
+                <div class="right"></div>
+            </div>
         </div>
-        <div id="inflow" class="flex">
-            <div class="left"></div>
-            <div class="right"></div>
+
+        <div class="row">
+            <p class="six columns">Source: UN Data</p>
+            <button class="six columns scale">Change to Log Scale</button>
         </div>
     </div>
-    <button class="scale">Change to Log Scale</button>
+
 </body>
 <script>
 
@@ -69,22 +81,36 @@
 
         draw() {
 
-            this.margin = {top: 100, right: 30, bottom: 30, left: 40},
-            this.padding = {top: 60, right: 60, bottom: 30, left: 60},
-            outerWidth = 600,
-            outerHeight = 700,
-            this.innerWidth = outerWidth - this.margin.left - this.margin.right,
-            this.innerHeight = outerHeight - this.margin.top - this.margin.bottom,
-            this.width = this.innerWidth - this.padding.left - this.padding.right,
-            this.height = this.innerHeight - this.padding.top - this.padding.bottom;
+            // Set the margin or outer spacing
+            this.margin = {top: 0, right: 10, bottom: 50, left: 10},
+
+            // Set the padding or innter spacing
+            this.padding = {top: 10, right: 50, bottom: 100, left: 50},
+
+            // Select the screen width and height
+            this.outerWidth = document.querySelector(".chart").clientWidth,
+            this.outerHeight = 600,
+
+            // Subtract the margins to create space for the svg container
+            this.innerWidth = this.outerWidth - (this.margin.left + this.margin.right),
+            this.innerHeight = this.outerHeight - (this.margin.top + this.margin.bottom),
+
+            // Subtract the padding to create space for the chart
+            this.width = this.innerWidth - (this.padding.right + this.padding.left),
+            this.height = this.innerHeight - (this.padding.top + this.padding.bottom);
+
+            console.log(this.height);
 
             
+            this.element.innerHTML = '';
+            const svg = d3.select(this.element).append('svg');
 
-            this.svg = d3.select(this.element)
-                .append("svg")
-                .attr("width", outerWidth)
-                .attr("height", outerHeight)
-                .attr("transform", `translate(${outerWidth / 2},0)`);
+            svg
+                .attr("width", this.innerWidth)
+                .attr("height", this.innerHeight);
+
+            this.plot = svg.append('g')
+                .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
 
             // create the other stuff
             this.createScales();
@@ -97,7 +123,7 @@
 
             this.yScale = d3.scaleLinear()
                 .domain(d3.extent(this.data, d => d.Migrants))
-                .range([this.innerHeight, this.margin.top + this.padding.top]);
+                .range([this.height, this.margin.top + this.padding.top]);
 
             this.cScale = d3.scaleLinear()
                 .domain([d3.min(this.tData, d => d.percentDiff), 0, d3.max(this.tData, d => d.percentDiff)])
@@ -110,11 +136,12 @@
             this.yAxis = d3.axisRight()
                 .scale(this.yScale)
                 .tickFormat(d3.format(".2s"))
-                .tickSize(this.padding.left - this.innerWidth);
+                .tickSize( (this.margin.left + this.padding.left) - this.width);
 
-            this.yAxisG = this.svg.append("g")
+            this.yAxisG = this.plot
+                .append("g")
                 .attr("class", "y-axis")
-                .attr("transform", "translate(" + [this.innerWidth, 0] + ")")
+                .attr("transform", `translate(${this.width}, 0 )`)
                 .call(this.yAxis);
 
             this.yAxisG
@@ -138,7 +165,7 @@
 
             let tooltip = d3.select("#tooltip");
 
-            this.barbellG = this.svg.selectAll("g")
+            this.barbellG = this.plot.selectAll("g")
                 .data(this.tData, d => d)
                 .enter()
                 .append("g")
@@ -156,6 +183,7 @@
                     tooltip.style("display", null);
                 })
                 .on("mousemove.tooltip", function(d) {
+
                     tooltip.transition().duration(200)
                         .style("display", "block")
                         .style("opacity", 0.9);
@@ -166,24 +194,24 @@
                     // position the tooltip
                     tooltip
                         .style("position", "fixed")
-                        .style("left", (d3.event.clientX + 15) + "px")
-                        .style("top", (d3.event.clientY + 15) + "px");
+                        .style("left", d3.event.clientX + 20)
+                        .style("top", d3.event.clientY + 20);
 
                     // Add tooltip text
                     tooltip.select("h3")
                         .html(d.country)
                         .style("font-size", "20px")
                         .style("font-family", "Noto Sans")
-                        .style("line-height", "5px")
-                        .style("text-align", "center");
+                        .style("text-align", "center")
+                        .style("margin-top", 10);
 
                     tooltip.select("#percent-diff")
                         .text(percentFormat(d.percentDiff))
-                        .attr("dy", -50)
                         .style("color", "#5A6872")
                         .style("font-family", "Roboto")
                         .style("font-size", "12px")
-                        .style("text-align", "center");
+                        .style("text-align", "center")
+                        .style("margin-top", -10);
 
                     tooltip.select("#outflow").select(".left")
                         .text("Outflow")
@@ -205,8 +233,8 @@
             this.lines = this.barbellG
                 .append("line")
                 .attr("class", "line")
-                .attr("x1", outerWidth * .25)
-                .attr("x2", outerWidth * .75)
+                .attr("x1", this.width * .25)
+                .attr("x2", this.width * .75)
                 .attr("y1", d => this.yScale(d.outflow))
                 .attr("y2", d => this.yScale(d.inflow))
                 .attr("stroke", d => this.cScale(d.percentDiff))
@@ -215,52 +243,25 @@
             this.circlesOut = this.barbellG
                 .append("circle")
                 .attr("r", 4)
-                .attr("cx", outerWidth * .25)
+                .attr("cx", this.width * .25)
                 .attr("cy", d => this.yScale(d.outflow))
                 .style("fill", d => this.cScale(d.percentDiff));
 
             this.circlesIn = this.barbellG
                 .append("circle")
                 .attr("r", 4)
-                .attr("cx", outerWidth * .75)
+                .attr("cx", this.width * .75)
                 .attr("cy", d => this.yScale(d.inflow))
                 .style("fill", d => this.cScale(d.percentDiff));
 
         }
 
         addLabels() {
-
-            const header = this.svg
-                .append("g")
-                .attr("transform", "translate(" + [this.padding.left, this.padding.top + 25] + ")")
-
-            header
-                .append("text")
-                .text("new migration")
-                .attr("text-anchor", "start")
-                .style("font-family", 'Noto Sans')
-                .style("font-size", "48px");
-
-            header
-                .append("text")
-                .attr("dy", 48)
-                .text("in the E.U.")
-                .attr("text-anchor", "start")
-                .style("font-family", 'Noto Sans')
-                .style("font-size", "48px");
-
-            header
-                .append("text")
-                .attr("dy", 72)
-                .attr("class", "sub-title")
-                .attr("text-anchor", "start")
-                .text("Population Migration by Country in 2015")
-                .style("font-family", "Raleway");
             
-            const outflowLabel = this.svg
+            const outflowLabel = this.plot
                 .append("text")
-                .attr("x", outerWidth * .25)
-                .attr("y", this.innerHeight)
+                .attr("x", this.width * .25)
+                .attr("y", this.height)
                 .attr("dy", 30)
                 .attr("text-anchor", "middle")
                 .text("OUTFLOW")
@@ -269,10 +270,10 @@
                 .style("font-weight", "400")
                 .style("fill", "#a2a2a2");
             
-            const inflowLabel = this.svg
+            const inflowLabel = this.plot
                 .append("text")
-                .attr("x", outerWidth * .75)
-                .attr("y", this.innerHeight)
+                .attr("x", this.width * .75)
+                .attr("y", this.height)
                 .attr("dy", 30)
                 .attr("text-anchor", "middle")
                 .text("INFLOW")
@@ -280,14 +281,6 @@
                 .style("font-size", "12px")
                 .style("font-weight", "400")
                 .style("fill", "#a2a2a2");
-
-            const footer = this.svg
-                .append("text")
-                .attr("class", "footer")
-                .attr("x", this.padding.left)
-                .attr("y", outerHeight - 10)
-                .attr("text-anchor", "start")
-                .text("Source: UN Data");
                     
         }
 
@@ -304,11 +297,11 @@
             }
 
             const t = d3.transition()
-                .duration(3000);
+                .duration(1000);
 
             this.yScale = scale
                 .domain(d3.extent(this.data, d => d.Migrants))
-                .range([this.innerHeight, this.margin.top + this.padding.top]);
+                .range([this.height, this.margin.top + this.padding.top]);
 
             /*
             
@@ -319,7 +312,7 @@
             this.yAxis = d3.axisRight()
                 .scale(this.yScale)
                 .tickFormat(d3.format(".2s"))
-                .tickSize(this.padding.left - this.innerWidth);
+                .tickSize( (this.margin.left + this.padding.left) - this.width);
 
             this.yAxisG
                 .transition(t)
@@ -387,23 +380,19 @@
             })
         })
 
-        initializeAreaChart(data, tData);
-
-    });
-
-    function initializeAreaChart(originalData, transformedData, originalScale) {
-
         const chart = new Chart({
-            element: document.querySelector('.chart-container'),
-            originalData: originalData,
-            transformedData: transformedData
+            element: document.querySelector('.chart'),
+            originalData: data,
+            transformedData: tData
         });
 
-        d3.selectAll('button.scale').on('click', () => {
+        d3.selectAll('button').on('click', () => {
             chart.updateScales();
         });
 
-    }
+        d3.select(window).on('resize', () => chart.draw() );
+        
+    });
 
 </script>
 </html>
