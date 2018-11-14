@@ -1,0 +1,409 @@
+<html>
+<head>
+    <style>
+    .footer {
+        font-family: Roboto;
+        font-size: 14px;
+        /* color: #CECECE; */
+    }
+
+    #tooltip {
+        display: none;
+        height: 125px;
+        width: 192px;
+        border-radius: 5px;
+        background-color: rgb(250, 250, 250);
+        box-shadow: 1px 2px 4px 0 rgba(0,0,0,0.4);
+        font-family: Roboto;
+        font-size: 12px;
+    }
+
+    .flex {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .flex .left {
+        padding-top: 5px;
+        margin-left: 25px;
+    }
+
+    .flex .right {
+        padding-top: 5px;
+        margin-right: 25px;
+    }
+    </style>
+    <link href="https://fonts.googleapis.com/css?family=Noto+Sans:700|Raleway" rel="stylesheet">
+    <script src="d3.js"></script>
+</head>
+<body>
+    <div class="chart-container"></div>
+    <div id="tooltip">
+        <h3></h3>
+        <div id="percent-diff"></div>
+        <div id="outflow"  class="flex">
+            <div class="left" id="outflow"></div>
+            <div class="right" id="outflow"></div>
+        </div>
+        <div id="inflow" class="flex">
+            <div class="left"></div>
+            <div class="right"></div>
+        </div>
+    </div>
+    <button class="scale">Change to Log Scale</button>
+</body>
+<script>
+
+    class Chart {
+
+        constructor(opts) {
+            // load in arguments from config object
+            this.element = opts.element;
+            this.data = opts.originalData;
+            this.tData = opts.transformedData;
+            
+            // create the chart
+            this.draw();
+            
+        }
+
+        draw() {
+
+            this.margin = {top: 100, right: 30, bottom: 30, left: 40},
+            this.padding = {top: 60, right: 60, bottom: 30, left: 60},
+            outerWidth = 600,
+            outerHeight = 700,
+            this.innerWidth = outerWidth - this.margin.left - this.margin.right,
+            this.innerHeight = outerHeight - this.margin.top - this.margin.bottom,
+            this.width = this.innerWidth - this.padding.left - this.padding.right,
+            this.height = this.innerHeight - this.padding.top - this.padding.bottom;
+
+            
+
+            this.svg = d3.select(this.element)
+                .append("svg")
+                .attr("width", outerWidth)
+                .attr("height", outerHeight)
+                .attr("transform", `translate(${outerWidth / 2},0)`);
+
+            // create the other stuff
+            this.createScales();
+            this.addAxes();
+            this.addBarbells();
+            this.addLabels();
+        }
+
+        createScales() {
+
+            this.yScale = d3.scaleLinear()
+                .domain(d3.extent(this.data, d => d.Migrants))
+                .range([this.innerHeight, this.margin.top + this.padding.top]);
+
+            this.cScale = d3.scaleLinear()
+                .domain([d3.min(this.tData, d => d.percentDiff), 0, d3.max(this.tData, d => d.percentDiff)])
+                .range(["#9C454C", "#E5E7E6", "#4577A3"]);
+
+        }
+
+        addAxes() {
+
+            this.yAxis = d3.axisRight()
+                .scale(this.yScale)
+                .tickFormat(d3.format(".2s"))
+                .tickSize(this.padding.left - this.innerWidth);
+
+            this.yAxisG = this.svg.append("g")
+                .attr("class", "y-axis")
+                .attr("transform", "translate(" + [this.innerWidth, 0] + ")")
+                .call(this.yAxis);
+
+            this.yAxisG
+                .selectAll("text")
+                .style("font-family", "Roboto")
+                .style("font-weight", "400")
+                .style("font-size", "12px")
+                .style("color", "#CECECE")
+
+            this.yAxisG
+                .selectAll("path")
+                .style("display", "none")
+
+            this.yAxisG
+                .selectAll("line")
+                .style("stroke", "#F1F1F1")
+
+        }
+
+        addBarbells() {
+
+            let tooltip = d3.select("#tooltip");
+
+            this.barbellG = this.svg.selectAll("g")
+                .data(this.tData, d => d)
+                .enter()
+                .append("g")
+                .attr("class", "barbell")
+                .style("opacity", .5)
+                .on("mouseover.highlight", function(d) {
+                    d3.select(this)
+                        .style("opacity", 1);
+                })
+                .on("mouseout.highlight", function(d) {
+                    d3.select(this)
+                        .style("opacity", .5);
+                })
+                .on("mouseover.tooltip", function() {
+                    tooltip.style("display", null);
+                })
+                .on("mousemove.tooltip", function(d) {
+                    tooltip.transition().duration(200)
+                        .style("display", "block")
+                        .style("opacity", 0.9);
+
+                    const percentFormat = d3.format(",.1%");
+                    const commaFormat = d3.format(",");
+                    
+                    // position the tooltip
+                    tooltip
+                        .style("position", "fixed")
+                        .style("left", (d3.event.clientX + 15) + "px")
+                        .style("top", (d3.event.clientY + 15) + "px");
+
+                    // Add tooltip text
+                    tooltip.select("h3")
+                        .html(d.country)
+                        .style("font-size", "20px")
+                        .style("font-family", "Noto Sans")
+                        .style("line-height", "5px")
+                        .style("text-align", "center");
+
+                    tooltip.select("#percent-diff")
+                        .text(percentFormat(d.percentDiff))
+                        .attr("dy", -50)
+                        .style("color", "#5A6872")
+                        .style("font-family", "Roboto")
+                        .style("font-size", "12px")
+                        .style("text-align", "center");
+
+                    tooltip.select("#outflow").select(".left")
+                        .text("Outflow")
+
+                    tooltip.select("#outflow").select(".right")
+                        .text(commaFormat(d.outflow))
+
+                    tooltip.select("#inflow").select(".left")
+                        .text("Inflow")
+
+                    tooltip.select("#inflow").select(".right")
+                        .text(commaFormat(d.inflow))
+
+                })
+                .on("mouseout.tooltip", function() {
+                    tooltip.style("display", "none");
+                });
+
+            this.lines = this.barbellG
+                .append("line")
+                .attr("class", "line")
+                .attr("x1", outerWidth * .25)
+                .attr("x2", outerWidth * .75)
+                .attr("y1", d => this.yScale(d.outflow))
+                .attr("y2", d => this.yScale(d.inflow))
+                .attr("stroke", d => this.cScale(d.percentDiff))
+                .style("stroke-width", 3);
+
+            this.circlesOut = this.barbellG
+                .append("circle")
+                .attr("r", 4)
+                .attr("cx", outerWidth * .25)
+                .attr("cy", d => this.yScale(d.outflow))
+                .style("fill", d => this.cScale(d.percentDiff));
+
+            this.circlesIn = this.barbellG
+                .append("circle")
+                .attr("r", 4)
+                .attr("cx", outerWidth * .75)
+                .attr("cy", d => this.yScale(d.inflow))
+                .style("fill", d => this.cScale(d.percentDiff));
+
+        }
+
+        addLabels() {
+
+            const header = this.svg
+                .append("g")
+                .attr("transform", "translate(" + [this.padding.left, this.padding.top + 25] + ")")
+
+            header
+                .append("text")
+                .text("new migration")
+                .attr("text-anchor", "start")
+                .style("font-family", 'Noto Sans')
+                .style("font-size", "48px");
+
+            header
+                .append("text")
+                .attr("dy", 48)
+                .text("in the E.U.")
+                .attr("text-anchor", "start")
+                .style("font-family", 'Noto Sans')
+                .style("font-size", "48px");
+
+            header
+                .append("text")
+                .attr("dy", 72)
+                .attr("class", "sub-title")
+                .attr("text-anchor", "start")
+                .text("Population Migration by Country in 2015")
+                .style("font-family", "Raleway");
+            
+            const outflowLabel = this.svg
+                .append("text")
+                .attr("x", outerWidth * .25)
+                .attr("y", this.innerHeight)
+                .attr("dy", 30)
+                .attr("text-anchor", "middle")
+                .text("OUTFLOW")
+                .style("font-family", "Roboto")
+                .style("font-size", "12px")
+                .style("font-weight", "400")
+                .style("fill", "#a2a2a2");
+            
+            const inflowLabel = this.svg
+                .append("text")
+                .attr("x", outerWidth * .75)
+                .attr("y", this.innerHeight)
+                .attr("dy", 30)
+                .attr("text-anchor", "middle")
+                .text("INFLOW")
+                .style("font-family", "Roboto")
+                .style("font-size", "12px")
+                .style("font-weight", "400")
+                .style("fill", "#a2a2a2");
+
+            const footer = this.svg
+                .append("text")
+                .attr("class", "footer")
+                .attr("x", this.padding.left)
+                .attr("y", outerHeight - 10)
+                .attr("text-anchor", "start")
+                .text("Source: UN Data");
+                    
+        }
+
+        updateScales() {
+
+            let scale = "";
+
+            if (document.querySelector("button.scale").textContent === "Change to Log Scale") {
+                scale = d3.scaleLog();
+                document.querySelector("button.scale").textContent = "Change to Linear Scale";
+            } else {
+                scale = d3.scaleLinear();
+                document.querySelector("button.scale").textContent = "Change to Log Scale";
+            }
+
+            const t = d3.transition()
+                .duration(3000);
+
+            this.yScale = scale
+                .domain(d3.extent(this.data, d => d.Migrants))
+                .range([this.innerHeight, this.margin.top + this.padding.top]);
+
+            /*
+            
+            UPDATE AXIS
+
+            */
+
+            this.yAxis = d3.axisRight()
+                .scale(this.yScale)
+                .tickFormat(d3.format(".2s"))
+                .tickSize(this.padding.left - this.innerWidth);
+
+            this.yAxisG
+                .transition(t)
+                .call(this.yAxis);
+
+            this.yAxisG
+                .selectAll("text")
+                .style("font-family", "Roboto")
+                .style("font-weight", "400")
+                .style("font-size", "12px")
+                .style("color", "#CECECE")
+
+            this.yAxisG
+                .selectAll("path")
+                .style("display", "none")
+
+            this.yAxisG
+                .selectAll("line")
+                .style("stroke", "#F1F1F1")
+
+            /*
+            
+            UPDATE ALL MARKS
+
+            */
+
+            this.lines
+                .transition(t)
+                .attr("y1", d => this.yScale(d.outflow))
+                .attr("y2", d => this.yScale(d.inflow));
+
+            this.circlesOut
+                .transition(t)
+                .attr("cy", d => this.yScale(d.outflow));
+
+            this.circlesIn
+                .transition(t)
+                .attr("cy", d => this.yScale(d.inflow));
+
+        }
+
+    }
+
+    d3.csv('data.csv').then(function(data) {
+
+        // Convert migrant from a string to an integer
+        data.forEach(d => {
+            d.Migrants = +d.Migrants;
+        })
+
+        // Nest data to remove redundant country rows
+        const nested = d3.nest()
+            .key(d => d.Country)
+            .entries(data);
+
+        // Initialize a new data arraw to use in our visualization
+        let tData = [];
+
+        nested.forEach(function(d) {
+            tData.push({
+                country: d.key,
+                outflow: d.values[1].Migrants,
+                inflow: d.values[0].Migrants,
+                percentDiff: (d.values[0].Migrants - d.values[1].Migrants) / d.values[0].Migrants
+            })
+        })
+
+        initializeAreaChart(data, tData);
+
+    });
+
+    function initializeAreaChart(originalData, transformedData, originalScale) {
+
+        const chart = new Chart({
+            element: document.querySelector('.chart-container'),
+            originalData: originalData,
+            transformedData: transformedData
+        });
+
+        d3.selectAll('button.scale').on('click', () => {
+            chart.updateScales();
+        });
+
+    }
+
+</script>
+</html>
