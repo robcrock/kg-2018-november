@@ -88,7 +88,7 @@
             this.padding = {top: 10, right: 50, bottom: 100, left: 50},
 
             // Select the screen width and height
-            this.outerWidth = document.querySelector(".chart").clientWidth,
+            this.outerWidth = 500,
             this.outerHeight = 600,
 
             // Subtract the margins to create space for the svg container
@@ -99,11 +99,10 @@
             this.width = this.innerWidth - (this.padding.right + this.padding.left),
             this.height = this.innerHeight - (this.padding.top + this.padding.bottom);
 
-            console.log(this.height);
-
             
             this.element.innerHTML = '';
-            const svg = d3.select(this.element).append('svg');
+            const svg = d3.select(this.element)
+                .append('svg');
 
             svg
                 .attr("width", this.innerWidth)
@@ -120,14 +119,22 @@
         }
 
         createScales() {
+            
+            let outflowArr = [];
+            let inflowArr = [];
+            this.tData.forEach(d => outflowArr.push(d.outflow));
+            this.tData.forEach(d => inflowArr.push(d.inflow));
+            let [minM, maxM] = d3.extent(outflowArr.concat(inflowArr));
 
             this.yScale = d3.scaleLinear()
-                .domain(d3.extent(this.data, d => d.Migrants))
+                .domain([minM, maxM])
                 .range([this.height, this.margin.top + this.padding.top]);
 
-            this.cScale = d3.scaleLinear()
-                .domain([d3.min(this.tData, d => d.percentDiff), 0, d3.max(this.tData, d => d.percentDiff)])
-                .range(["#9C454C", "#E5E7E6", "#4577A3"]);
+            console.log(d3.extent(this.tData, d => d.net));
+
+            this.cScale = d3.scaleOrdinal()
+                .domain(["neg", "pos"])
+                .range(["#9C454C", "#4577A3"]);
 
         }
 
@@ -170,7 +177,7 @@
                 .enter()
                 .append("g")
                 .attr("class", "barbell")
-                .style("opacity", .5)
+                .style("opacity", 1)
                 .on("mouseover.highlight", function(d) {
                     d3.select(this)
                         .style("opacity", 1);
@@ -237,7 +244,7 @@
                 .attr("x2", this.width * .75)
                 .attr("y1", d => this.yScale(d.outflow))
                 .attr("y2", d => this.yScale(d.inflow))
-                .attr("stroke", d => this.cScale(d.percentDiff))
+                .attr("stroke", d => d.net >= 0 ? this.cScale("pos") : this.cScale("neg"))
                 .style("stroke-width", 3);
 
             this.circlesOut = this.barbellG
@@ -245,14 +252,14 @@
                 .attr("r", 4)
                 .attr("cx", this.width * .25)
                 .attr("cy", d => this.yScale(d.outflow))
-                .style("fill", d => this.cScale(d.percentDiff));
+                .style("fill", d => d.net >= 0 ? this.cScale("pos") : this.cScale("neg"));
 
             this.circlesIn = this.barbellG
                 .append("circle")
                 .attr("r", 4)
                 .attr("cx", this.width * .75)
                 .attr("cy", d => this.yScale(d.inflow))
-                .style("fill", d => this.cScale(d.percentDiff));
+                .style("fill", d => d.net >= 0 ? this.cScale("pos") : this.cScale("neg"));
 
         }
 
@@ -356,29 +363,28 @@
 
     }
 
-    d3.csv('data.csv').then(function(data) {
-
-        // Convert migrant from a string to an integer
-        data.forEach(d => {
-            d.Migrants = +d.Migrants;
-        })
+    d3.csv('OECD-data.csv').then(function(data) {
 
         // Nest data to remove redundant country rows
         const nested = d3.nest()
-            .key(d => d.Country)
+            .key(d => d["country"])
             .entries(data);
+
+        let filtered = nested.filter( d => d.key === "United Kingdom");
 
         // Initialize a new data arraw to use in our visualization
         let tData = [];
 
-        nested.forEach(function(d) {
+        filtered[0].values.forEach(function(d) {
             tData.push({
-                country: d.key,
-                outflow: d.values[1].Migrants,
-                inflow: d.values[0].Migrants,
-                percentDiff: (d.values[0].Migrants - d.values[1].Migrants) / d.values[0].Migrants
+                country: d["foreign nationality"],
+                outflow: +d.outflow,
+                inflow: +d.inflow,
+                net: +d.inflow - +d.outflow
             })
         })
+
+        console.log(tData);
 
         const chart = new Chart({
             element: document.querySelector('.chart'),
@@ -390,7 +396,7 @@
             chart.updateScales();
         });
 
-        d3.select(window).on('resize', () => chart.draw() );
+        // d3.select(window).on('resize', () => chart.draw() );
         
     });
 
