@@ -2,71 +2,71 @@
 <head>
     <style>
     
-    a {
-        font-size: 12px;
-    }
+        a {
+            font-size: 12px;
+        }
 
-    #title {
-        font-family: "Noto Sans";
-        font-size: 42;
-        line-height: 110%;
-    }
+        #title {
+            font-family: "Noto Sans";
+            font-size: 42;
+            line-height: 110%;
+        }
 
-    #sub-title {
-        margin-top: 5px;
-        width: 375px;
-    }
+        #sub-title {
+            margin-top: 5px;
+            width: 375px;
+        }
 
-    #tooltip {
-        display: none;
-        height: 125px;
-        width: 192px;
-        border-radius: 4px;
-        border: 1px solid #bbbbbb;
-        background-color: rgb(255, 255, 255);
-        box-shadow: 1px 2px 4px 0 rgba(0,0,0,0.4);
-        font-family: Roboto;
-        font-size: 12px;
-    }
+        #tooltip {
+            display: none;
+            height: 125px;
+            width: 192px;
+            border-radius: 4px;
+            border: 1px solid #bbbbbb;
+            background-color: rgb(255, 255, 255);
+            box-shadow: 1px 2px 4px 0 rgba(0,0,0,0.4);
+            font-family: Roboto;
+            font-size: 12px;
+        }
 
-    .t-header {
-        font-size: 20px;
-        margin-bottom: 0px;
-    }
+        .t-header {
+            font-size: 20px;
+            margin-bottom: 0px;
+        }
 
-    #net {
-        font-size: 14px;
-        margin-bottom: 10px;
-    }
+        #net {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
 
-    .red {
-        font-family: "Noto Sans";
-        color: #9C454C;
-    }
+        .red {
+            font-family: "Noto Sans";
+            color: #9C454C;
+        }
 
-    .blue {
-        font-family: "Noto Sans";
-        color: #4577A3;
-    }
+        .blue {
+            font-family: "Noto Sans";
+            color: #4577A3;
+        }
 
-    .scale,select {
-        margin-top: 15px;
-    }
+        .scale,select {
+            margin-top: 15px;
+        }
 
-    .flex {
-        display: flex;
-        justify-content: space-between;
-    }
+        .flex {
+            display: flex;
+            justify-content: space-between;
+        }
 
-    .flex .left {
-        padding-top: 5px;
-        margin-left: 25px;
-    }
+        .flex .left {
+            padding-top: 5px;
+            margin-left: 25px;
+        }
 
-    .flex .right {
-        padding-top: 5px;
-        margin-right: 25px;
-    }
+        .flex .right {
+            padding-top: 5px;
+            margin-right: 25px;
+        }
 
     </style>
     <link rel="stylesheet" href="skeleton.css">
@@ -74,7 +74,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
 </head>
 <body>
-
     <div class="container">
         <div class="header">
             <div id="title">Are More People Coming or Going?</div>
@@ -104,7 +103,6 @@
         <button class="u-full-width scale">Change to Log Scale</button>
         <a class="six columns" href="https://stats.oecd.org/Index.aspx?DataSetCode=MIG">OECD.stat</a>
     </div>
-
 </body>
 <script>
 
@@ -113,8 +111,7 @@
         constructor(opts) {
             // load in arguments from config object
             this.element = opts.element;
-            this.data = opts.originalData;
-            this.tData = opts.transformedData;
+            this.data = opts.transformedData;
             
             // create the chart
             this.draw();
@@ -154,11 +151,11 @@
             this.plot = svg.append('g')
                 .attr("translate", `transform(${[this.padding.left, this.padding.top]}))`);
 
-            // create the other stuff
             this.createScales();
             this.addAxes();
             this.addBarbells();
             this.addLabels();
+
         }
 
         createScales() {
@@ -173,8 +170,8 @@
             
             let outflowArr = [];
             let inflowArr = [];
-            this.tData.forEach(d => outflowArr.push(d.outflow));
-            this.tData.forEach(d => inflowArr.push(d.inflow));
+            this.data.forEach(d => outflowArr.push(d.outflow));
+            this.data.forEach(d => inflowArr.push(d.inflow));
             [this.minM, this.maxM] = d3.extent(outflowArr.concat(inflowArr));
 
             this.yScale = scale
@@ -218,103 +215,113 @@
         }
 
         addBarbells() {
-
             let tooltip = d3.select("#tooltip");
 
-            this.barbellG = this.plot.selectAll("g")
-                .data(this.tData, d => d)
+            this.barbellG = this.plot.selectAll(".barbell")
+                .data(this.data, d => d.country);
+            
+
+            this.barbellGEnter = this.barbellG
                 .enter()
                 .append("g")
                 .attr("class", d => `barbell ${d["pos-or-neg"]}`)
                 .style("opacity", .5)
                 .on("mouseover.highlight", function(d) {
 
-                    this.classList.add("hovered")
+                this.classList.add("hovered")
 
-                    d3.selectAll(".barbell")
-                        .style("opacity", .3);
+                d3.selectAll(".barbell")
+                .style("opacity", .3);
 
-                    d3.select(".hovered")
-                        .style("opacity", 1);
+                d3.select(".hovered")
+                .style("opacity", 1);
 
                 })
                 .on("mouseout.highlight", function(d) {                    
-                    this.classList.remove("hovered")
+                this.classList.remove("hovered")
 
-                    d3.selectAll(".barbell")
-                        .style("opacity", .5);
+                d3.selectAll(".barbell")
+                .style("opacity", .5);
                 })
                 .on("mouseover.tooltip", function() {
-                    tooltip.style("display", null);
+                tooltip.style("display", null);
                 })
                 .on("mousemove.tooltip", function(d) {
 
-                    tooltip.transition().duration(200)
-                        .style("display", "block")
-                        .style("opacity", 0.9);
+                tooltip.transition().duration(200)
+                .style("display", "block")
+                .style("opacity", 0.9);
 
-                    const commaFormat = d3.format(",");
-                    
-                    // position the tooltip
-                    tooltip
-                        .style("position", "fixed")
-                        .style("left", d3.event.clientX + 20)
-                        .style("top", d3.event.clientY + 20);
+                const commaFormat = d3.format(",");
 
-                    // Add tooltip text
-                    tooltip.select("h3")
-                        .html(d.country)
-                        .style("font-size", "20px")
-                        .style("font-family", "Noto Sans")
-                        .style("text-align", "center")
-                        .style("margin-top", 10);
+                // position the tooltip
+                tooltip
+                .style("position", "fixed")
+                .style("left", d3.event.clientX + 20)
+                .style("top", d3.event.clientY + 20);
 
-                    tooltip.select("#net")
-                        .text(commaFormat(d.net))
-                        .style("color", "#5A6872")
-                        .style("font-family", "Roboto")
-                        .style("text-align", "center");
+                // Add tooltip text
+                tooltip.select("h3")
+                .html(d.country)
+                .style("font-size", "20px")
+                .style("font-family", "Noto Sans")
+                .style("text-align", "center")
+                .style("margin-top", 10);
 
-                    tooltip.select("#outflow").select(".left")
-                        .text("OUTFLOW")
+                tooltip.select("#net")
+                .text(commaFormat(d.net))
+                .style("color", "#5A6872")
+                .style("font-family", "Roboto")
+                .style("text-align", "center");
 
-                    tooltip.select("#outflow").select(".right")
-                        .text(commaFormat(d.outflow))
+                tooltip.select("#outflow").select(".left")
+                .text("OUTFLOW")
 
-                    tooltip.select("#inflow").select(".left")
-                        .text("INFLOW")
+                tooltip.select("#outflow").select(".right")
+                .text(commaFormat(d.outflow))
 
-                    tooltip.select("#inflow").select(".right")
-                        .text(commaFormat(d.inflow))
+                tooltip.select("#inflow").select(".left")
+                .text("INFLOW")
+
+                tooltip.select("#inflow").select(".right")
+                .text(commaFormat(d.inflow))
 
                 })
                 .on("mouseout.tooltip", function() {
-                    tooltip.style("display", "none");
+                tooltip.style("display", "none");
                 });
 
-            this.lines = this.barbellG
-                .append("line")
-                .attr("class", "line")
-                .attr("x1", this.margin.left + this.padding.left + (this.width * .25))
-                .attr("x2", this.margin.left + this.padding.left + (this.width * .75))
-                .attr("y1", d => this.yScale(d.outflow))
-                .attr("y2", d => this.yScale(d.inflow))
-                .attr("stroke", d => this.cScale(d["pos-or-neg"]))
-                .style("stroke-width", 3);
+            this.barbellGEnter
+                .merge(this.barbellG);
 
-            this.circlesOut = this.barbellG
-                .append("circle")
-                .attr("r", 4)
-                .attr("cx", this.margin.left + this.padding.left + (this.width * .25))
-                .attr("cy", d => this.yScale(d.outflow))
-                .style("fill", d => this.cScale(d["pos-or-neg"]));
+            this.barbellG.exit().remove();
 
-            this.circlesIn = this.barbellG
-                .append("circle")
-                .attr("r", 4)
-                .attr("cx", this.margin.left + this.padding.left + (this.width * .75))
-                .attr("cy", d => this.yScale(d.inflow))
-                .style("fill", d => this.cScale(d["pos-or-neg"]));
+            this.lines = this.barbellGEnter
+                    .append("line")
+                    .attr("class", "line")
+                    .style("stroke-width", 3)
+                .merge(this.barbellG.select("line"))
+                    .attr("x1", this.margin.left + this.padding.left + (this.width * .25))
+                    .attr("x2", this.margin.left + this.padding.left + (this.width * .75))
+                    .attr("y1", d => this.yScale(d.outflow))
+                    .attr("y2", d => this.yScale(d.inflow))
+                    .attr("stroke", d => this.cScale(d["pos-or-neg"]));
+
+            this.circlesOut = this.barbellGEnter
+                    .append("circle")
+                    .attr("r", 4)
+                    .style("fill", d => this.cScale(d["pos-or-neg"]))
+                .merge(this.barbellG.select("circle"))
+                    .attr("cx", this.margin.left + this.padding.left + (this.width * .25))
+                    .attr("cy", d => this.yScale(d.outflow));
+
+            this.circlesIn = this.barbellGEnter
+                    .append("circle")
+                    .attr("r", 4)
+                    .style("fill", d => this.cScale(d["pos-or-neg"]))
+                .merge(this.barbellG.select("circle"))
+                    .attr("cx", this.margin.left + this.padding.left + (this.width * .75))
+                    .attr("cy", d => this.yScale(d.inflow));
 
         }
 
@@ -479,47 +486,22 @@
 
     d3.csv('OECD-data.csv').then(function(data) {
 
-        // Nest data to remove redundant country rows
-        const nested = d3.nest()
-            .key(d => d["country"])
-            .entries(data);
+        initializeData(data);
 
-        let filtered = nested.filter( d => d.key === document.querySelector("#country").value);
-
-        // Initialize a new data arraw to use in our visualization
-        let tData = [];
-
-        filtered[0].values.forEach(function(d) {
-            tData.push({
-                country: d["foreign nationality"],
-                outflow: +d.outflow,
-                inflow: +d.inflow,
-                net: +d.inflow - +d.outflow,
-                "pos-or-neg": +d.inflow - +d.outflow >= 0 ? "pos" : "neg"
-            })
-        })
-
-        let chart = new Chart({
-            element: document.querySelector('.chart'),
-            originalData: data,
-            transformedData: tData
-        });
-
-        d3.select('#country').on('change', function() {
+        function initializeData(data, key = document.querySelector("#country").value) {
 
             // Nest data to remove redundant country rows
-            let newNest = d3.nest()
+            const nested = d3.nest()
                 .key(d => d["country"])
-                .entries(chart.data);
+                .entries(data);
 
-            let newFilter = [];
-            
-            newNest.forEach( d => d.key === this.value ? newFilter.push(d) : "" );
+            // Pull out the current value from the dropdown menu
+            let filtered = nested.filter( d => d.key === key);
 
-            // Initialize a new data arraw to use in our visualization
+            // Initialize a new data array to use in our visualization
             let tData = [];
 
-            newFilter[0].values.forEach(function(d) {
+            filtered[0].values.forEach(function(d) {
                 tData.push({
                     country: d["foreign nationality"],
                     outflow: +d.outflow,
@@ -529,19 +511,34 @@
                 })
             })
 
-            chart.setData(chart.data, tData);
+            let chart = new Chart({
+                element: document.querySelector('.chart'),
+                transformedData: tData
+            });
 
-        });
+            /*
+            // MANGE THE CONTROLS CHANGING ON THE SCREEN
+            */
 
-        d3.selectAll('button').on('click', () => {
+            // Country drop down
+            d3.select('#country').on('change', function() {
 
-            if (document.querySelector("button.scale").textContent === "Change to Log Scale") {
-                chart.changeToLogScale();
-            } else {
-                chart.changeToLinearScale();
-            }
-            
-        });
+                initializeData(data, this.value);
+
+            });
+
+            // Changing the scale
+            d3.selectAll('button').on('click', () => {
+
+                if (document.querySelector("button.scale").textContent === "Change to Log Scale") {
+                    chart.changeToLogScale();
+                } else {
+                    chart.changeToLinearScale();
+                }
+
+            });
+
+        }
         
     });
 
