@@ -24,7 +24,7 @@
             border-radius: 4px;
             border: 1px solid #bbbbbb;
             background-color: rgb(255, 255, 255);
-            box-shadow: 1px 2px 4px 0 rgba(0,0,0,0.4);
+            box-shadow: 1px 1px 1px 0 rgba(0,0,0,0.4);
             font-family: Roboto;
             font-size: 12px;
         }
@@ -211,6 +211,27 @@
             this.yAxisG
                 .selectAll("line")
                 .style("stroke", "#F1F1F1")
+                
+                // this.margin.left + this.padding.left + (this.width * .75)
+            this.plot
+                .append("line")
+                    .attr("x1", this.innerWidth - (this.padding.right + this.margin.right + 12))
+                    .attr("y1", 0)
+                    .attr("x2", this.innerWidth - (this.padding.right + this.margin.right + 12))
+                    .attr("y2", this.height)
+                    .attr("stroke", "black")
+                    .attr("stroke-dasharray", 3)
+                    .style("opacity", .2)
+
+            this.plot
+                .append("line")
+                    .attr("x1", this.width * .25 + this.padding.left + this.margin.left)
+                    .attr("y1", 0)
+                    .attr("x2", this.width * .25 + this.padding.left + this.margin.left)
+                    .attr("y2", this.height)
+                    .attr("stroke", "black")
+                    .attr("stroke-dasharray", "3")
+                    .style("opacity", .2)
 
         }
 
@@ -228,67 +249,67 @@
                 .style("opacity", .5)
                 .on("mouseover.highlight", function(d) {
 
-                this.classList.add("hovered")
+                    this.classList.add("hovered")
 
-                d3.selectAll(".barbell")
-                .style("opacity", .3);
+                    d3.selectAll(".barbell")
+                    .style("opacity", .3);
 
-                d3.select(".hovered")
-                .style("opacity", 1);
+                    d3.select(".hovered")
+                    .style("opacity", 1);
 
                 })
                 .on("mouseout.highlight", function(d) {                    
-                this.classList.remove("hovered")
+                    this.classList.remove("hovered")
 
-                d3.selectAll(".barbell")
-                .style("opacity", .5);
+                    d3.selectAll(".barbell")
+                    .style("opacity", .5);
                 })
                 .on("mouseover.tooltip", function() {
-                tooltip.style("display", null);
+                    tooltip.style("display", null);
                 })
                 .on("mousemove.tooltip", function(d) {
 
-                tooltip.transition().duration(200)
-                .style("display", "block")
-                .style("opacity", 0.9);
+                    tooltip.transition().duration(200)
+                    .style("display", "block")
+                    .style("opacity", 0.9);
 
-                const commaFormat = d3.format(",");
+                    const commaFormat = d3.format(",");
 
-                // position the tooltip
-                tooltip
-                .style("position", "fixed")
-                .style("left", d3.event.clientX + 20)
-                .style("top", d3.event.clientY + 20);
+                    // position the tooltip
+                    tooltip
+                    .style("position", "fixed")
+                    .style("left", d3.event.clientX + 20)
+                    .style("top", d3.event.clientY + 20);
 
-                // Add tooltip text
-                tooltip.select("h3")
-                .html(d.country)
-                .style("font-size", "20px")
-                .style("font-family", "Noto Sans")
-                .style("text-align", "center")
-                .style("margin-top", 10);
+                    // Add tooltip text
+                    tooltip.select("h3")
+                    .html(d.country)
+                    .style("font-size", "20px")
+                    .style("font-family", "Noto Sans")
+                    .style("text-align", "center")
+                    .style("margin-top", 10);
 
-                tooltip.select("#net")
-                .text(commaFormat(d.net))
-                .style("color", "#5A6872")
-                .style("font-family", "Roboto")
-                .style("text-align", "center");
+                    tooltip.select("#net")
+                    .text(commaFormat(d.net))
+                    .style("color", "#5A6872")
+                    .style("font-family", "Roboto")
+                    .style("text-align", "center");
 
-                tooltip.select("#outflow").select(".left")
-                .text("OUTFLOW")
+                    tooltip.select("#outflow").select(".left")
+                    .text("OUTFLOW")
 
-                tooltip.select("#outflow").select(".right")
-                .text(commaFormat(d.outflow))
+                    tooltip.select("#outflow").select(".right")
+                    .text(commaFormat(d.outflow))
 
-                tooltip.select("#inflow").select(".left")
-                .text("INFLOW")
+                    tooltip.select("#inflow").select(".left")
+                    .text("INFLOW")
 
-                tooltip.select("#inflow").select(".right")
-                .text(commaFormat(d.inflow))
+                    tooltip.select("#inflow").select(".right")
+                    .text(commaFormat(d.inflow))
 
                 })
                 .on("mouseout.tooltip", function() {
-                tooltip.style("display", "none");
+                    tooltip.style("display", "none");
                 });
 
             this.barbellGEnter
@@ -358,6 +379,7 @@
                         .style("opacity", .5);
                 });
             
+
             const inflowLabel = this.plot
                 .append("text")
                 .attr("x", this.margin.left + this.padding.left + (this.width * .75))
