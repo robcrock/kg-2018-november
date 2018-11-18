@@ -1,19 +1,56 @@
 <html>
 <head>
     <style>
-    h1 {
+    
+    a {
+        font-size: 12px;
+    }
+
+    #title {
         font-family: "Noto Sans";
+        font-size: 42;
+        line-height: 110%;
+    }
+
+    #sub-title {
+        margin-top: 5px;
+        width: 375px;
     }
 
     #tooltip {
         display: none;
         height: 125px;
         width: 192px;
-        border-radius: 5px;
-        background-color: rgb(250, 250, 250);
+        border-radius: 4px;
+        border: 1px solid #bbbbbb;
+        background-color: rgb(255, 255, 255);
         box-shadow: 1px 2px 4px 0 rgba(0,0,0,0.4);
         font-family: Roboto;
         font-size: 12px;
+    }
+
+    .t-header {
+        font-size: 20px;
+        margin-bottom: 0px;
+    }
+
+    #net {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .red {
+        font-family: "Noto Sans";
+        color: #9C454C;
+    }
+
+    .blue {
+        font-family: "Noto Sans";
+        color: #4577A3;
+    }
+
+    .scale,select {
+        margin-top: 15px;
     }
 
     .flex {
@@ -38,15 +75,23 @@
 </head>
 <body>
 
-    <div class="container" style="max-width: 1000px;"></div>
-        <h1>net migration in the E.U.</h1>
-        <p>Population Migration by Country in 2015</p>
-
+    <div class="container">
+        <div class="header">
+            <div id="title">Are More People Coming or Going?</div>
+            <div id="sub-title">Below we look at how many people flowed <span class="blue">into</span> or <span class="red">out</span> of a short list of countries in 2015.</div>
+        </div>
+        <select class="u-full-width" id="country">
+            <option>Australia</option>
+            <option>Colombia</option>
+            <option>France</option>
+            <option>Indonesia</option>
+            <option>Spain</option>
+            <option>United Kingdom</option>
+        </select>
         <div class="chart"></div>
-
         <div id="tooltip">
-            <h3></h3>
-            <div id="percent-diff"></div>
+            <h3 class="t-header"></h3>
+            <div id="net"></div>
             <div id="outflow"  class="flex">
                 <div class="left" id="outflow"></div>
                 <div class="right" id="outflow"></div>
@@ -56,11 +101,8 @@
                 <div class="right"></div>
             </div>
         </div>
-
-        <div class="row">
-            <p class="six columns">Source: UN Data</p>
-            <button class="six columns scale">Change to Log Scale</button>
-        </div>
+        <button class="u-full-width scale">Change to Log Scale</button>
+        <a class="six columns" href="https://stats.oecd.org/Index.aspx?DataSetCode=MIG">OECD.stat</a>
     </div>
 
 </body>
@@ -82,14 +124,14 @@
         draw() {
 
             // Set the margin or outer spacing
-            this.margin = {top: 0, right: 10, bottom: 50, left: 10},
+            this.margin = {top: 10, right: 50, bottom: 0, left: 30},
 
             // Set the padding or innter spacing
-            this.padding = {top: 10, right: 50, bottom: 100, left: 50},
+            this.padding = {top: 10, right: 20, bottom: 20, left: 30},
 
             // Select the screen width and height
             this.outerWidth = 500,
-            this.outerHeight = 600,
+            this.outerHeight = 450,
 
             // Subtract the margins to create space for the svg container
             this.innerWidth = this.outerWidth - (this.margin.left + this.margin.right),
@@ -105,11 +147,12 @@
                 .append('svg');
 
             svg
-                .attr("width", this.innerWidth)
-                .attr("height", this.innerHeight);
+                .attr("width", this.outerWidth)
+                .attr("height", this.outerHeight)
+                .attr("translate", `transform(${[this.margin.left, this.margin.top]})`);
 
             this.plot = svg.append('g')
-                .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
+                .attr("translate", `transform(${[this.padding.left, this.padding.top]}))`);
 
             // create the other stuff
             this.createScales();
@@ -119,18 +162,24 @@
         }
 
         createScales() {
+
+            let scale = "";
+
+            if (document.querySelector("button.scale").textContent === "Change to Log Scale") {
+                scale = d3.scaleLinear();
+            } else {
+                scale = d3.scaleLog();
+            }
             
             let outflowArr = [];
             let inflowArr = [];
             this.tData.forEach(d => outflowArr.push(d.outflow));
             this.tData.forEach(d => inflowArr.push(d.inflow));
-            let [minM, maxM] = d3.extent(outflowArr.concat(inflowArr));
+            [this.minM, this.maxM] = d3.extent(outflowArr.concat(inflowArr));
 
-            this.yScale = d3.scaleLinear()
-                .domain([minM, maxM])
+            this.yScale = scale
+                .domain([this.minM, this.maxM])
                 .range([this.height, this.margin.top + this.padding.top]);
-
-            console.log(d3.extent(this.tData, d => d.net));
 
             this.cScale = d3.scaleOrdinal()
                 .domain(["neg", "pos"])
@@ -143,7 +192,7 @@
             this.yAxis = d3.axisRight()
                 .scale(this.yScale)
                 .tickFormat(d3.format(".2s"))
-                .tickSize( (this.margin.left + this.padding.left) - this.width);
+                .tickSize( (this.margin.left + this.padding.left) - this.width * .85);
 
             this.yAxisG = this.plot
                 .append("g")
@@ -176,14 +225,23 @@
                 .data(this.tData, d => d)
                 .enter()
                 .append("g")
-                .attr("class", "barbell")
-                .style("opacity", 1)
+                .attr("class", d => `barbell ${d["pos-or-neg"]}`)
+                .style("opacity", .5)
                 .on("mouseover.highlight", function(d) {
-                    d3.select(this)
+
+                    this.classList.add("hovered")
+
+                    d3.selectAll(".barbell")
+                        .style("opacity", .3);
+
+                    d3.select(".hovered")
                         .style("opacity", 1);
+
                 })
-                .on("mouseout.highlight", function(d) {
-                    d3.select(this)
+                .on("mouseout.highlight", function(d) {                    
+                    this.classList.remove("hovered")
+
+                    d3.selectAll(".barbell")
                         .style("opacity", .5);
                 })
                 .on("mouseover.tooltip", function() {
@@ -195,7 +253,6 @@
                         .style("display", "block")
                         .style("opacity", 0.9);
 
-                    const percentFormat = d3.format(",.1%");
                     const commaFormat = d3.format(",");
                     
                     // position the tooltip
@@ -212,22 +269,20 @@
                         .style("text-align", "center")
                         .style("margin-top", 10);
 
-                    tooltip.select("#percent-diff")
-                        .text(percentFormat(d.percentDiff))
+                    tooltip.select("#net")
+                        .text(commaFormat(d.net))
                         .style("color", "#5A6872")
                         .style("font-family", "Roboto")
-                        .style("font-size", "12px")
-                        .style("text-align", "center")
-                        .style("margin-top", -10);
+                        .style("text-align", "center");
 
                     tooltip.select("#outflow").select(".left")
-                        .text("Outflow")
+                        .text("OUTFLOW")
 
                     tooltip.select("#outflow").select(".right")
                         .text(commaFormat(d.outflow))
 
                     tooltip.select("#inflow").select(".left")
-                        .text("Inflow")
+                        .text("INFLOW")
 
                     tooltip.select("#inflow").select(".right")
                         .text(commaFormat(d.inflow))
@@ -240,26 +295,26 @@
             this.lines = this.barbellG
                 .append("line")
                 .attr("class", "line")
-                .attr("x1", this.width * .25)
-                .attr("x2", this.width * .75)
+                .attr("x1", this.margin.left + this.padding.left + (this.width * .25))
+                .attr("x2", this.margin.left + this.padding.left + (this.width * .75))
                 .attr("y1", d => this.yScale(d.outflow))
                 .attr("y2", d => this.yScale(d.inflow))
-                .attr("stroke", d => d.net >= 0 ? this.cScale("pos") : this.cScale("neg"))
+                .attr("stroke", d => this.cScale(d["pos-or-neg"]))
                 .style("stroke-width", 3);
 
             this.circlesOut = this.barbellG
                 .append("circle")
                 .attr("r", 4)
-                .attr("cx", this.width * .25)
+                .attr("cx", this.margin.left + this.padding.left + (this.width * .25))
                 .attr("cy", d => this.yScale(d.outflow))
-                .style("fill", d => d.net >= 0 ? this.cScale("pos") : this.cScale("neg"));
+                .style("fill", d => this.cScale(d["pos-or-neg"]));
 
             this.circlesIn = this.barbellG
                 .append("circle")
                 .attr("r", 4)
-                .attr("cx", this.width * .75)
+                .attr("cx", this.margin.left + this.padding.left + (this.width * .75))
                 .attr("cy", d => this.yScale(d.inflow))
-                .style("fill", d => d.net >= 0 ? this.cScale("pos") : this.cScale("neg"));
+                .style("fill", d => this.cScale(d["pos-or-neg"]));
 
         }
 
@@ -267,7 +322,7 @@
             
             const outflowLabel = this.plot
                 .append("text")
-                .attr("x", this.width * .25)
+                .attr("x", this.margin.left + this.padding.left + (this.width * .25))
                 .attr("y", this.height)
                 .attr("dy", 30)
                 .attr("text-anchor", "middle")
@@ -275,11 +330,30 @@
                 .style("font-family", "Roboto")
                 .style("font-size", "12px")
                 .style("font-weight", "400")
-                .style("fill", "#a2a2a2");
+                .style("fill", "#9C454C")
+                .style("opacity", .5)
+                .on("mouseover.highlight", function(d) {
+                    d3.select(this)
+                        .style("opacity", 1);
+
+                    d3.selectAll(".neg")
+                        .style("opacity", 1);
+
+                    d3.selectAll(".pos")
+                        .style("opacity", .3);
+                    
+                })
+                .on("mouseout.highlight", function(d) {
+                    d3.select(this)
+                        .style("opacity", .5);
+
+                    d3.selectAll(".barbell")
+                        .style("opacity", .5);
+                });
             
             const inflowLabel = this.plot
                 .append("text")
-                .attr("x", this.width * .75)
+                .attr("x", this.margin.left + this.padding.left + (this.width * .75))
                 .attr("y", this.height)
                 .attr("dy", 30)
                 .attr("text-anchor", "middle")
@@ -287,34 +361,66 @@
                 .style("font-family", "Roboto")
                 .style("font-size", "12px")
                 .style("font-weight", "400")
-                .style("fill", "#a2a2a2");
+                .style("fill", "#4577A3")
+                .style("opacity", .5)
+                .on("mouseover.highlight", function(d) {
+                    d3.select(this)
+                        .style("opacity", 1);
+
+                    d3.selectAll(".pos")
+                        .style("opacity", 1);
+
+                    d3.selectAll(".neg")
+                        .style("opacity", .3);
+                    
+                })
+                .on("mouseout.highlight", function(d) {
+                    d3.select(this)
+                        .style("opacity", .5);
+
+                    d3.selectAll(".barbell")
+                        .style("opacity", .5);
+                });
                     
         }
 
-        updateScales() {
+        changeToLogScale() {
 
             let scale = "";
 
-            if (document.querySelector("button.scale").textContent === "Change to Log Scale") {
-                scale = d3.scaleLog();
-                document.querySelector("button.scale").textContent = "Change to Linear Scale";
-            } else {
-                scale = d3.scaleLinear();
-                document.querySelector("button.scale").textContent = "Change to Log Scale";
-            }
+            scale = d3.scaleLog();
+            document.querySelector("button.scale").textContent = "Change to Linear Scale";
 
             const t = d3.transition()
                 .duration(1000);
 
             this.yScale = scale
-                .domain(d3.extent(this.data, d => d.Migrants))
+                .domain([this.minM, this.maxM])
                 .range([this.height, this.margin.top + this.padding.top]);
 
-            /*
-            
-            UPDATE AXIS
+            this.updateScale(scale, t);
 
-            */
+        }
+
+        changeToLinearScale() {
+
+            let scale = "";
+
+            scale = d3.scaleLinear();
+            document.querySelector("button.scale").textContent = "Change to Log Scale";
+
+            const t = d3.transition()
+                .duration(1000);
+
+            this.yScale = scale
+                .domain([this.minM, this.maxM])
+                .range([this.height, this.margin.top + this.padding.top]);
+
+            this.updateScale(scale, t);
+
+        }
+
+        updateScale(scale, t) {
 
             this.yAxis = d3.axisRight()
                 .scale(this.yScale)
@@ -361,6 +467,14 @@
 
         }
 
+        setData(newData, newTData) {
+            this.data = newData;
+            this.tData = newTData;
+
+            // full redraw needed
+            this.draw();
+        }
+
     }
 
     d3.csv('OECD-data.csv').then(function(data) {
@@ -370,7 +484,7 @@
             .key(d => d["country"])
             .entries(data);
 
-        let filtered = nested.filter( d => d.key === "United Kingdom");
+        let filtered = nested.filter( d => d.key === document.querySelector("#country").value);
 
         // Initialize a new data arraw to use in our visualization
         let tData = [];
@@ -380,23 +494,54 @@
                 country: d["foreign nationality"],
                 outflow: +d.outflow,
                 inflow: +d.inflow,
-                net: +d.inflow - +d.outflow
+                net: +d.inflow - +d.outflow,
+                "pos-or-neg": +d.inflow - +d.outflow >= 0 ? "pos" : "neg"
             })
         })
 
-        console.log(tData);
-
-        const chart = new Chart({
+        let chart = new Chart({
             element: document.querySelector('.chart'),
             originalData: data,
             transformedData: tData
         });
 
-        d3.selectAll('button').on('click', () => {
-            chart.updateScales();
+        d3.select('#country').on('change', function() {
+
+            // Nest data to remove redundant country rows
+            let newNest = d3.nest()
+                .key(d => d["country"])
+                .entries(chart.data);
+
+            let newFilter = [];
+            
+            newNest.forEach( d => d.key === this.value ? newFilter.push(d) : "" );
+
+            // Initialize a new data arraw to use in our visualization
+            let tData = [];
+
+            newFilter[0].values.forEach(function(d) {
+                tData.push({
+                    country: d["foreign nationality"],
+                    outflow: +d.outflow,
+                    inflow: +d.inflow,
+                    net: +d.inflow - +d.outflow,
+                    "pos-or-neg": +d.inflow - +d.outflow >= 0 ? "pos" : "neg"
+                })
+            })
+
+            chart.setData(chart.data, tData);
+
         });
 
-        // d3.select(window).on('resize', () => chart.draw() );
+        d3.selectAll('button').on('click', () => {
+
+            if (document.querySelector("button.scale").textContent === "Change to Log Scale") {
+                chart.changeToLogScale();
+            } else {
+                chart.changeToLinearScale();
+            }
+            
+        });
         
     });
 
