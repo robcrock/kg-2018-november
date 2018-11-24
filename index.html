@@ -26,6 +26,11 @@
             font-weight: bold;
         }
 
+        /* Footer style */
+        a {
+            text-align: right;
+        }
+
 
         /* Tooltip formating */
         .flex {
@@ -147,7 +152,7 @@
             </div>
         </div>
         <button class="u-full-width scale">Change to Log Scale</button>
-        <a class="six columns" href="https://stats.oecd.org/Index.aspx?DataSetCode=MIG">OECD.Stat</a>
+        <a class="twelve columns" href="https://stats.oecd.org/Index.aspx?DataSetCode=MIG">OECD.Stat</a>
     </div>
 </body>
 <script>
@@ -155,43 +160,32 @@
     class Chart {
 
         constructor(opts) {
-            // load in arguments from config object
             this.element = opts.element;
             this.data = opts.transformedData;
             
-            // create the chart
             this.draw();
-            
         }
 
         draw() {
 
-            // Set the margin or outer spacing
+            this.svgWidth = 500,
+            this.svgHeight = 450,
             this.margin = {top: 10, right: 50, bottom: 0, left: 30},
-
-            // Set the padding or innter spacing
             this.padding = {top: 10, right: 20, bottom: 20, left: 30},
-
-            // Select the screen width and height
-            this.outerWidth = 500,
-            this.outerHeight = 450,
-
-            // Subtract the margins to create space for the svg container
-            this.innerWidth = this.outerWidth - (this.margin.left + this.margin.right),
-            this.innerHeight = this.outerHeight - (this.margin.top + this.margin.bottom),
-
-            // Subtract the padding to create space for the chart
-            this.width = this.innerWidth - (this.padding.right + this.padding.left),
-            this.height = this.innerHeight - (this.padding.top + this.padding.bottom);
-
+            this.plotWidth = this.svgWidth - (this.margin.left + this.margin.right),
+            this.plotHeight = this.svgHeight - (this.margin.top + this.margin.bottom),
+            this.chartWidth = this.plotWidth - (this.padding.right + this.padding.left),
+            this.chartHeight = this.plotHeight - (this.padding.top + this.padding.bottom);
             
+            ////////////////////////////////////////////////////////////////////////////////
+            ///////////////////////////////// CLEAR THE SVG ////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////
             this.element.innerHTML = '';
-            const svg = d3.select(this.element)
-                .append('svg');
 
-            svg
-                .attr("width", this.outerWidth)
-                .attr("height", this.outerHeight)
+            const svg = d3.select(this.element)
+                .append('svg')
+                .attr("width", this.svgWidth)
+                .attr("height", this.svgHeight)
                 .attr("translate", `transform(${[this.margin.left, this.margin.top]})`);
 
             this.plot = svg.append('g')
@@ -205,29 +199,33 @@
         }
 
         createScales() {
-
-            let scale = "";
-
-            if (document.querySelector("button.scale").textContent === "Change to Log Scale") {
-                scale = d3.scaleLinear();
-            } else {
-                scale = d3.scaleLog();
-            }
             
-            // I did to grab the min and max of the entire dataset.
-            let outflowArr = [];
-            let inflowArr = [];
-            this.data.forEach(d => outflowArr.push(d.outflow));
-            this.data.forEach(d => inflowArr.push(d.inflow));
-            [this.minM, this.maxM] = d3.extent(outflowArr.concat(inflowArr));
+            ////////////////////////////////////////////////////////////////////////////////
+            /////////////////// FIND THE MIN AND MAX OF ALL MOVEMENT ///////////////////////
+            ////////////////////////////////////////////////////////////////////////////////
+            const migration = [];
+            for(const record of this.data) {
+                migration.push(record.outflow);
+                migration.push(record.inflow);
+            }
+            [this.minM, this.maxM] = d3.extent(migration);
 
-            this.yScale = scale
-                .domain([this.minM, this.maxM])
-                .range([this.height, this.margin.top + this.padding.top]);
+            ////////////////////////////////////////////////////////////////////////////////
+            ////////////////////// SET SCALES BASED ON BUTTON TEXT /////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////
+            if (document.querySelector("button.scale").textContent === "Change to Linear Scale") {
 
-            this.cScale = d3.scaleOrdinal()
-                .domain(["neg", "pos"])
-                .range(["#9C454C", "#4577A3"]);
+                this.yScale = d3.scaleLog()
+                    .domain([this.minM, this.maxM])
+                    .range([this.chartHeight, this.margin.top + this.padding.top]);
+
+            } else {
+
+                this.yScale = d3.scaleLinear()
+                    .domain([this.minM, this.maxM])
+                    .range([this.chartHeight, this.margin.top + this.padding.top]);
+
+            }
 
         }
 
@@ -235,31 +233,31 @@
 
             this.yAxis = d3.axisRight()
                 .scale(this.yScale)
-                .tickFormat(d3.format(".2s"))
-                .tickSize( (this.margin.left + this.padding.left) - this.width * .85);
+                // .tickFormat(d3.format(".2s"))
+                .tickSize( (this.margin.left + this.padding.left) - this.chartWidth * .85);
 
             this.yAxisG = this.plot
                 .append("g")
                 .attr("class", "y-axis")
-                .attr("transform", `translate(${this.width}, 0 )`)
+                .attr("transform", `translate(${this.chartWidth}, 0 )`)
                 .call(this.yAxis);
                 
             // Create two vertical lines to create alignment of our point along the y-axis.
             this.plot
                 .append("line")
                     .classed("v-line", true)
-                    .attr("x1", this.innerWidth - (this.padding.right + this.margin.right + 12))
+                    .attr("x1", this.plotWidth - (this.padding.right + this.margin.right + 12))
                     .attr("y1", 0)
-                    .attr("x2", this.innerWidth - (this.padding.right + this.margin.right + 12))
-                    .attr("y2", this.height)
+                    .attr("x2", this.plotWidth - (this.padding.right + this.margin.right + 12))
+                    .attr("y2", this.chartHeight)
 
             this.plot
                 .append("line")
                     .classed("v-line", true)
-                    .attr("x1", this.width * .25 + this.padding.left + this.margin.left)
+                    .attr("x1", this.chartWidth * .25 + this.padding.left + this.margin.left)
                     .attr("y1", 0)
-                    .attr("x2", this.width * .25 + this.padding.left + this.margin.left)
-                    .attr("y2", this.height);
+                    .attr("x2", this.chartWidth * .25 + this.padding.left + this.margin.left)
+                    .attr("y2", this.chartHeight);
 
         }
 
@@ -344,8 +342,8 @@
                     .append("line")
                     .classed("line", true)
                 .merge(this.barbellG.select("line"))
-                    .attr("x1", this.margin.left + this.padding.left + (this.width * .25))
-                    .attr("x2", this.margin.left + this.padding.left + (this.width * .75))
+                    .attr("x1", this.margin.left + this.padding.left + (this.chartWidth * .25))
+                    .attr("x2", this.margin.left + this.padding.left + (this.chartWidth * .75))
                     .attr("y1", d => this.yScale(d.outflow))
                     .attr("y2", d => this.yScale(d.inflow))
 
@@ -353,14 +351,14 @@
                     .append("circle")
                     .attr("r", 4)
                 .merge(this.barbellG.select("circle"))
-                    .attr("cx", this.margin.left + this.padding.left + (this.width * .25))
+                    .attr("cx", this.margin.left + this.padding.left + (this.chartWidth * .25))
                     .attr("cy", d => this.yScale(d.outflow));
 
             this.circlesIn = this.barbellGEnter
                     .append("circle")
                     .attr("r", 4)
                 .merge(this.barbellG.select("circle"))
-                    .attr("cx", this.margin.left + this.padding.left + (this.width * .75))
+                    .attr("cx", this.margin.left + this.padding.left + (this.chartWidth * .75))
                     .attr("cy", d => this.yScale(d.inflow));
 
         }
@@ -370,8 +368,8 @@
             const outflowLabel = this.plot
                 .append("text")
                 .classed("outflow-lable", true)
-                .attr("x", this.margin.left + this.padding.left + (this.width * .25))
-                .attr("y", this.height)
+                .attr("x", this.margin.left + this.padding.left + (this.chartWidth * .25))
+                .attr("y", this.chartHeight)
                 .attr("dy", 30)
                 .text("OUTFLOW")
                 .on("mouseover.highlight", function(d) {
@@ -397,8 +395,8 @@
             const inflowLabel = this.plot
                 .append("text")
                 .classed("inflow-lable", true)
-                .attr("x", this.margin.left + this.padding.left + (this.width * .75))
-                .attr("y", this.height)
+                .attr("x", this.margin.left + this.padding.left + (this.chartWidth * .75))
+                .attr("y", this.chartHeight)
                 .attr("dy", 30)
                 .text("INFLOW")
                 .on("mouseover.highlight", function(d) {
@@ -422,58 +420,35 @@
                     
         }
 
-        changeToLogScale() {
+        updateScales() {
 
-            let scale = "";
+            if (document.querySelector("button.scale").textContent === "Change to Log Scale") {
 
-            scale = d3.scaleLog();
-            document.querySelector("button.scale").textContent = "Change to Linear Scale";
+                document.querySelector("button.scale").textContent = "Change to Linear Scale";
 
-            const t = d3.transition()
-                .duration(1000);
+                this.yScale = d3.scaleLog()
+                    .domain([this.minM, this.maxM])
+                    .range([this.chartHeight, this.margin.top + this.padding.top]);
 
-            this.yScale = scale
-                .domain([this.minM, this.maxM])
-                .range([this.height, this.margin.top + this.padding.top]);
+            } else {
 
-            this.updateScale(scale, t);
+                document.querySelector("button.scale").textContent = "Change to Log Scale";
 
-        }
+                this.yScale = d3.scaleLinear()
+                    .domain([this.minM, this.maxM])
+                    .range([this.chartHeight, this.margin.top + this.padding.top]);
 
-        changeToLinearScale() {
+            }
 
-            let scale = "";
-
-            scale = d3.scaleLinear();
-            document.querySelector("button.scale").textContent = "Change to Log Scale";
+            this.yAxis
+                .scale(this.yScale);
 
             const t = d3.transition()
                 .duration(1000);
-
-            this.yScale = scale
-                .domain([this.minM, this.maxM])
-                .range([this.height, this.margin.top + this.padding.top]);
-
-            this.updateScale(scale, t);
-
-        }
-
-        updateScale(scale, t) {
-
-            this.yAxis = d3.axisRight()
-                .scale(this.yScale)
-                .tickFormat(d3.format(".2s"))
-                .tickSize( (this.margin.left + this.padding.left) - this.width);
 
             this.yAxisG
                 .transition(t)
                 .call(this.yAxis);
-
-            /*
-            
-            UPDATE ALL MARKS
-
-            */
 
             this.lines
                 .transition(t)
@@ -487,74 +462,62 @@
             this.circlesIn
                 .transition(t)
                 .attr("cy", d => this.yScale(d.inflow));
-
-        }
-
-        setData(newData, newTData) {
-            this.data = newData;
-            this.tData = newTData;
-
-            // full redraw needed
-            this.draw();
         }
 
     }
 
-    d3.csv('OECD-data.csv').then(function(data) {
+    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////// LOAD DATA FOR THE 1ST TIME //////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
 
-        initializeData(data);
+    d3.csv('OECD-data.csv').then( data => {
 
-        function initializeData(data, key = document.querySelector("#country").value) {
+        function initializeData(data) { // , key = document.querySelector("#country").value) {
 
-            // Nest data to remove redundant country rows
+            // Group data by each country in our list
             const nested = d3.nest()
                 .key(d => d["country"])
                 .entries(data);
 
-            // Pull out the current value from the dropdown menu
-            let filtered = nested.filter( d => d.key === key);
+            // Filter data by the current country selection
+            const filtered = nested.filter( d => d.key === document.querySelector("#country").value);
 
             // Initialize a new data array to use in our visualization
-            let tData = [];
-
-            filtered[0].values.forEach(function(d) {
-                tData.push({
+            const transformedData = filtered[0].values.map( d => {
+                return {
                     country: d["foreign nationality"],
                     outflow: +d.outflow,
                     inflow: +d.inflow,
                     net: +d.inflow - +d.outflow,
                     "pos-or-neg": +d.inflow - +d.outflow >= 0 ? "pos" : "neg"
-                })
+                }
             })
 
-            let chart = new Chart({
-                element: document.querySelector('.chart'),
-                transformedData: tData
-            });
-
-            /*
-            // MANGE THE CONTROLS CHANGING ON THE SCREEN
-            */
-
-            // Country drop down
-            d3.select('#country').on('change', function() {
-
-                initializeData(data, this.value);
-
-            });
-
-            // Changing the scale
-            d3.selectAll('button').on('click', () => {
-
-                if (document.querySelector("button.scale").textContent === "Change to Log Scale") {
-                    chart.changeToLogScale();
-                } else {
-                    chart.changeToLinearScale();
-                }
-
-            });
+            return transformedData;
 
         }
+
+        ////////////////////////////////////////////////////////////////////////////////
+        /////////////////////////////// CREATE NEW CHART ///////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////
+
+        let chart = new Chart({
+            element: document.querySelector('.chart'),
+            transformedData: initializeData(data)
+        });
+
+        ////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////// HAND CONTROL CHANGES /////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////
+        
+        d3.select('#country').on('change', () => {
+            chart.data= initializeData(data)
+            chart.draw()
+        });
+
+        d3.selectAll('button').on('click', () => {
+            chart.updateScales();
+        });
         
     });
 
