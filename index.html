@@ -63,10 +63,10 @@
             margin: 10 auto 0 auto;
         }
         #net {
-            font-size: 14px;
-            color: #5A6872;
+            font-size: 12px;
+            color: #939698;
             text-align: center;
-            margin: 0 auto 10 auto;
+            margin: 0 auto 5 auto;
         }
 
         /* y-axis formatting */
@@ -89,18 +89,29 @@
         }
 
         /* Mark formatting */
-        .pos > .line{
+        .pos.barbell{
             stroke: #4577A3;
-            stroke-width: 3;
         }
-        .neg > .line{
+        .neg.barbell{
             stroke: #9C454C;
+        }
+
+        .line{
             stroke-width: 3;
         }
-        .pos > circle {
+        .line{
+            stroke-width: 3;
+        }
+        .pos.circle-out {
             fill: #4577A3;
         }
-        .neg > circle {
+        .neg.circle-out {
+            fill: #9C454C;
+        }
+        .pos.circle-in {
+            fill: #4577A3;
+        }
+        .neg.circle-in {
             fill: #9C454C;
         }
 
@@ -157,30 +168,43 @@
 </body>
 <script>
 
-    class Chart {
+    class slopeChart {
 
         constructor(opts) {
+            // Make the opts available locally
             this.element = opts.element;
+            this.svgWidth = opts.width;
+            this.svgHeight = opts.height;
+            this.margin = opts.margin;
+            this.padding = opts.padding;
             this.data = opts.transformedData;
-            
+
+            // Create additional setup variables we'll need locally based on the opts
+            this.plotWidth = this.svgWidth - (this.margin.left + this.margin.right);
+            this.plotHeight = this.svgHeight - (this.margin.top + this.margin.bottom);
+            this.chartWidth = this.plotWidth - (this.padding.right + this.padding.left);
+            this.chartHeight = this.plotHeight - (this.padding.top + this.padding.bottom);
+
             this.draw();
         }
 
         draw() {
 
-            this.svgWidth = 500,
-            this.svgHeight = 450,
-            this.margin = {top: 10, right: 50, bottom: 0, left: 30},
-            this.padding = {top: 10, right: 20, bottom: 20, left: 30},
-            this.plotWidth = this.svgWidth - (this.margin.left + this.margin.right),
-            this.plotHeight = this.svgHeight - (this.margin.top + this.margin.bottom),
-            this.chartWidth = this.plotWidth - (this.padding.right + this.padding.left),
-            this.chartHeight = this.plotHeight - (this.padding.top + this.padding.bottom);
-            
             ////////////////////////////////////////////////////////////////////////////////
             ///////////////////////////////// CLEAR THE SVG ////////////////////////////////
             ////////////////////////////////////////////////////////////////////////////////
+
             this.element.innerHTML = '';
+
+            this.setup();
+            this.createScales();
+            this.createAxes();
+            // this.createDecorations();
+            this.createBarbells();
+
+        }
+
+        setup() {
 
             const svg = d3.select(this.element)
                 .append('svg')
@@ -188,13 +212,9 @@
                 .attr("height", this.svgHeight)
                 .attr("translate", `transform(${[this.margin.left, this.margin.top]})`);
 
-            this.plot = svg.append('g')
+            this.plot = svg.selectAll("g").data([null])
+            this.plotEnter = this.plot.enter().append('g')
                 .attr("translate", `transform(${[this.padding.left, this.padding.top]}))`);
-
-            this.createScales();
-            this.addAxes();
-            this.addBarbells();
-            this.addLabels();
 
         }
 
@@ -203,6 +223,7 @@
             ////////////////////////////////////////////////////////////////////////////////
             /////////////////// FIND THE MIN AND MAX OF ALL MOVEMENT ///////////////////////
             ////////////////////////////////////////////////////////////////////////////////
+
             const migration = [];
             for(const record of this.data) {
                 migration.push(record.outflow);
@@ -213,7 +234,8 @@
             ////////////////////////////////////////////////////////////////////////////////
             ////////////////////// SET SCALES BASED ON BUTTON TEXT /////////////////////////
             ////////////////////////////////////////////////////////////////////////////////
-            if (document.querySelector("button.scale").textContent === "Change to Linear Scale") {
+
+            if (document.querySelector("button.scale").textContent.includes("Linear")) {
 
                 this.yScale = d3.scaleLog()
                     .domain([this.minM, this.maxM])
@@ -229,11 +251,11 @@
 
         }
 
-        addAxes() {
+        createAxes() {
 
             this.yAxis = d3.axisRight()
                 .scale(this.yScale)
-                // .tickFormat(d3.format(".2s"))
+                .ticks(10, d3.format(",k"))
                 .tickSize( (this.margin.left + this.padding.left) - this.chartWidth * .85);
 
             this.yAxisG = this.plot
@@ -241,8 +263,120 @@
                 .attr("class", "y-axis")
                 .attr("transform", `translate(${this.chartWidth}, 0 )`)
                 .call(this.yAxis);
+
+        }
+
+        createBarbells() {
+
+            const tooltip = d3.select("#tooltip");
+
+            // This is our UPDATE selection since it's the data join
+            this.groups = this.plotEnter.selectAll("g")
+                .data(this.data, d => d.country)
+
+            this.groups.exit().remove();
+
+            this.gEnter = this.groups.enter().append("g")
+                .attr("class", d => `${d["pos-or-neg"]} barbell`);
+
+            // Hightlight the active barbell
+            // this.barbellG
+                // // Dim other marks to bring the hover mark into focus
+                // .on("mouseover.highlight", function(d) {
+
+                //     this.classList.add("hovered")
+
+                //     d3.selectAll(".barbell")
+                //     .style("opacity", .3);
+
+                //     d3.select(".hovered")
+                //     .style("opacity", 1);
+
+                // })
+                // // Reset to the default
+                // .on("mouseout.highlight", function(d) {                    
+                //     this.classList.remove("hovered")
+
+                //     d3.selectAll(".barbell")
+                //         .style("opacity", .5);
+                // })
+
+            // // Reveal the tooltip next to the mouse
+            // this.barbellG
+            //     .on("mousemove.tooltip", function(d) {
+
+            //         tooltip.transition()
+            //             .style("display", "block")
+            //             .style("opacity", .9);
+
+            //         const commaFormat = d3.format(",");
+
+            //         // Positioning the tooltip to the bottom right of your cursor
+            //         tooltip
+            //             .style("position", "fixed")
+            //             .style("left", d3.event.clientX + 20)
+            //             .style("top", d3.event.clientY + 20);
+
+            //         // Creating the country header
+            //         tooltip.select(".tt-header")
+            //             .text(d.country);
+
+            //         // Add the the subtitle of Net value
+            //         tooltip.select("#net")
+            //             .text(`Net ${commaFormat(d.net)}`)
+                    
+            //         // Insert row of data for Outflow
+            //         tooltip.select("#outflow").select(".left")
+            //             .text("OUTFLOW")
+            //         tooltip.select("#outflow").select(".right")
+            //             .text(commaFormat(d.outflow))
+
+            //         // Insert row of data for Inflow
+            //         tooltip.select("#inflow").select(".left")
+            //             .text("INFLOW")
+            //         tooltip.select("#inflow").select(".right")
+            //             .text(commaFormat(d.inflow))
+
+            //     })
+            //     .on("mouseout.tooltip", function() {
+            //         tooltip.style("display", "none");
+            //     });
+
+            // this.barbellG(".barbell")
+            //     .data(this.data, d => d.country)
+            //     .enter()
+            //     .append("g")
+            //     .attr("class", d => `barbell ${d["pos-or-neg"]}`)
+            //     .style("opacity", .5);
+
                 
-            // Create two vertical lines to create alignment of our point along the y-axis.
+            this.lines = this.gEnter.append("line")
+                    .attr("class", d => `${d["pos-or-neg"]} line `)
+                    .attr("x1", this.margin.left + this.padding.left + (this.chartWidth * .25))
+                    .attr("x2", this.margin.left + this.padding.left + (this.chartWidth * .75))
+                    .attr("y1", d => this.yScale(d.outflow))
+                    .attr("y2", d => this.yScale(d.inflow));
+
+            this.circlesOut = this.gEnter.append("circle")
+                    .attr("class", d => `${d["pos-or-neg"]} circle-out`)
+                    .attr("r", 4)
+                    .attr("cx", this.margin.left + this.padding.left + (this.chartWidth * .25))
+                    .attr("cy", d => this.yScale(d.outflow));
+
+            this.circlesIn = this.gEnter.append("circle")
+                    .attr("class", d => `${d["pos-or-neg"]} circle-in`)
+                    .attr("r", 4)
+                    .attr("cx", this.margin.left + this.padding.left + (this.chartWidth * .75))
+                    .attr("cy", d => this.yScale(d.inflow));
+
+        }
+
+        createDecorations() {
+
+            ////////////////////////////////////////////////////////////////////////////////
+            ///////////////////////////// VERTICAL DASHED LINES ////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////
+                
             this.plot
                 .append("line")
                     .classed("v-line", true)
@@ -251,6 +385,10 @@
                     .attr("x2", this.plotWidth - (this.padding.right + this.margin.right + 12))
                     .attr("y2", this.chartHeight)
 
+            ////////////////////////////////////////////////////////////////////////////////
+            //////////////////////// LABELS BELOW THE VERTICAL LINES ///////////////////////
+            ////////////////////////////////////////////////////////////////////////////////
+
             this.plot
                 .append("line")
                     .classed("v-line", true)
@@ -258,112 +396,6 @@
                     .attr("y1", 0)
                     .attr("x2", this.chartWidth * .25 + this.padding.left + this.margin.left)
                     .attr("y2", this.chartHeight);
-
-        }
-
-        addBarbells() {
-            let tooltip = d3.select("#tooltip");
-
-            this.barbellG = this.plot.selectAll(".barbell")
-                .data(this.data, d => d.country);
-
-            this.barbellGEnter = this.barbellG
-                .enter()
-                .append("g")
-                .attr("class", d => `barbell ${d["pos-or-neg"]}`)
-                .style("opacity", .5);
-
-            this.barbellGEnter
-                .on("mouseover.highlight", function(d) {
-
-                    this.classList.add("hovered")
-
-                    d3.selectAll(".barbell")
-                    .style("opacity", .3);
-
-                    d3.select(".hovered")
-                    .style("opacity", 1);
-
-                })
-                .on("mouseout.highlight", function(d) {                    
-                    this.classList.remove("hovered")
-
-                    d3.selectAll(".barbell")
-                    .style("opacity", .5);
-                })
-
-            this.barbellGEnter
-                .on("mouseover.tooltip", function() {
-                    tooltip.style("display", null);
-                })
-                .on("mousemove.tooltip", function(d) {
-
-                    tooltip.transition()
-                        .style("display", "block")
-                        .style("opacity", 0.9);
-
-                    const commaFormat = d3.format(",");
-
-                    // Positioning the tooltip to the bottom right of your cursor
-                    tooltip
-                        .style("position", "fixed")
-                        .style("left", d3.event.clientX + 20)
-                        .style("top", d3.event.clientY + 20);
-
-                    // Creating the country header
-                    tooltip.select(".tt-header")
-                        .html(d.country)
-
-                    // Add the the subtitle of Net value
-                    tooltip.select("#net")
-                        .text(commaFormat(d.net))
-                    
-                    // Adding the INLFOW OUTFLOW data
-                    tooltip.select("#outflow").select(".left")
-                        .text("OUTFLOW")
-                    tooltip.select("#outflow").select(".right")
-                        .text(commaFormat(d.outflow))
-                    tooltip.select("#inflow").select(".left")
-                        .text("INFLOW")
-                    tooltip.select("#inflow").select(".right")
-                        .text(commaFormat(d.inflow))
-
-                })
-                .on("mouseout.tooltip", function() {
-                    tooltip.style("display", "none");
-                });
-
-            this.barbellGEnter
-                .merge(this.barbellG);
-
-            this.barbellG.exit().remove();
-
-            this.lines = this.barbellGEnter
-                    .append("line")
-                    .classed("line", true)
-                .merge(this.barbellG.select("line"))
-                    .attr("x1", this.margin.left + this.padding.left + (this.chartWidth * .25))
-                    .attr("x2", this.margin.left + this.padding.left + (this.chartWidth * .75))
-                    .attr("y1", d => this.yScale(d.outflow))
-                    .attr("y2", d => this.yScale(d.inflow))
-
-            this.circlesOut = this.barbellGEnter
-                    .append("circle")
-                    .attr("r", 4)
-                .merge(this.barbellG.select("circle"))
-                    .attr("cx", this.margin.left + this.padding.left + (this.chartWidth * .25))
-                    .attr("cy", d => this.yScale(d.outflow));
-
-            this.circlesIn = this.barbellGEnter
-                    .append("circle")
-                    .attr("r", 4)
-                .merge(this.barbellG.select("circle"))
-                    .attr("cx", this.margin.left + this.padding.left + (this.chartWidth * .75))
-                    .attr("cy", d => this.yScale(d.inflow));
-
-        }
-
-        addLabels() {
             
             const outflowLabel = this.plot
                 .append("text")
@@ -417,22 +449,21 @@
                     d3.selectAll(".barbell")
                         .style("opacity", .5);
                 });
-                    
+
         }
 
         updateScales() {
 
-            if (document.querySelector("button.scale").textContent === "Change to Log Scale") {
-
-                document.querySelector("button.scale").textContent = "Change to Linear Scale";
+            if (document.querySelector("button.scale").textContent.includes("Log")) {
 
                 this.yScale = d3.scaleLog()
                     .domain([this.minM, this.maxM])
                     .range([this.chartHeight, this.margin.top + this.padding.top]);
 
-            } else {
+                this.yAxis
+                    .ticks(10, d3.format(",k"));
 
-                document.querySelector("button.scale").textContent = "Change to Log Scale";
+            } else {
 
                 this.yScale = d3.scaleLinear()
                     .domain([this.minM, this.maxM])
@@ -443,25 +474,47 @@
             this.yAxis
                 .scale(this.yScale);
 
-            const t = d3.transition()
-                .duration(1000);
-
             this.yAxisG
-                .transition(t)
                 .call(this.yAxis);
 
+        }
+
+        updateButtonText() {
+
+            if (document.querySelector("button.scale").textContent.includes("Log")) {
+
+                document.querySelector("button.scale").textContent = "Change to Linear Scale";
+
+            } else {
+
+                document.querySelector("button.scale").textContent = "Change to Log Scale";
+
+            }
+
+        }
+
+        updateBarbells() {
+
+            this.gEnter
+                .merge(this.gEnter)
+                    .transition();
+
             this.lines
-                .transition(t)
-                .attr("y1", d => this.yScale(d.outflow))
-                .attr("y2", d => this.yScale(d.inflow));
+                .merge(this.groups.select("line"))
+                    .transition()
+                    .attr("y1", d => this.yScale(d.outflow))
+                    .attr("y2", d => this.yScale(d.inflow));
 
             this.circlesOut
-                .transition(t)
-                .attr("cy", d => this.yScale(d.outflow));
+                .merge(this.groups.select('.circle-out'))
+                    .transition()
+                    .attr("cy", d => this.yScale(d.outflow));
 
             this.circlesIn
-                .transition(t)
-                .attr("cy", d => this.yScale(d.inflow));
+                .merge(this.groups.select('.circle-in'))
+                    .transition()
+                    .attr("cy", d => this.yScale(d.inflow));
+
         }
 
     }
@@ -480,7 +533,8 @@
                 .entries(data);
 
             // Filter data by the current country selection
-            const filtered = nested.filter( d => d.key === document.querySelector("#country").value);
+            const filtered = nested
+                .filter( d => d.key === document.querySelector("#country").value);
 
             // Initialize a new data array to use in our visualization
             const transformedData = filtered[0].values.map( d => {
@@ -498,11 +552,24 @@
         }
 
         ////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////// SET THE CHART SIZE //////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////
+
+        const width = 500;
+        const height = 450;
+        const margin = {top: 10, right: 50, bottom: 0, left: 30};
+        const padding = {top: 10, right: 20, bottom: 20, left: 30};
+
+        ////////////////////////////////////////////////////////////////////////////////
         /////////////////////////////// CREATE NEW CHART ///////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////
 
-        let chart = new Chart({
+        const chart = new slopeChart({
             element: document.querySelector('.chart'),
+            width,
+            height,
+            margin,
+            padding,
             transformedData: initializeData(data)
         });
 
@@ -511,15 +578,19 @@
         ////////////////////////////////////////////////////////////////////////////////
         
         d3.select('#country').on('change', () => {
-            chart.data= initializeData(data)
-            chart.draw()
+            chart.data = initializeData(data);
+            chart.createScales();
+            chart.createBarbells();
+            chart.updateBarbells();
         });
 
-        d3.selectAll('button').on('click', () => {
+        d3.selectAll('button.scale').on('click', () => {
             chart.updateScales();
+            chart.updateBarbells();
+            chart.updateButtonText();
         });
         
-    });
+    })
 
 </script>
 </html>
