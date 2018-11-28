@@ -133,7 +133,7 @@
     </style>
     <link rel="stylesheet" href="skeleton.css">
     <link href="https://fonts.googleapis.com/css?family=Noto+Sans:700|Roboto" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
+    <script src="d3.js"></script>
 </head>
 <body>
     <div class="container">
@@ -279,6 +279,10 @@
             this.gEnter = this.groups.enter().append("g")
                 .attr("class", d => `${d["pos-or-neg"]} barbell`);
 
+            this.gEnter
+                .merge(this.gEnter)
+                    .transition();
+
             // Hightlight the active barbell
             // this.barbellG
                 // // Dim other marks to bring the hover mark into focus
@@ -355,18 +359,28 @@
                     .attr("x1", this.margin.left + this.padding.left + (this.chartWidth * .25))
                     .attr("x2", this.margin.left + this.padding.left + (this.chartWidth * .75))
                     .attr("y1", d => this.yScale(d.outflow))
+                    .attr("y2", d => this.yScale(d.inflow))
+                .merge(this.groups.select("line"))
+                    .transition()
+                    .attr("y1", d => this.yScale(d.outflow))
                     .attr("y2", d => this.yScale(d.inflow));
 
             this.circlesOut = this.gEnter.append("circle")
                     .attr("class", d => `${d["pos-or-neg"]} circle-out`)
                     .attr("r", 4)
                     .attr("cx", this.margin.left + this.padding.left + (this.chartWidth * .25))
+                    .attr("cy", d => this.yScale(d.outflow))
+                .merge(this.groups.select('.circle-out'))
+                    .transition()
                     .attr("cy", d => this.yScale(d.outflow));
 
             this.circlesIn = this.gEnter.append("circle")
                     .attr("class", d => `${d["pos-or-neg"]} circle-in`)
                     .attr("r", 4)
                     .attr("cx", this.margin.left + this.padding.left + (this.chartWidth * .75))
+                    .attr("cy", d => this.yScale(d.inflow))
+                .merge(this.groups.select('.circle-in'))
+                    .transition()
                     .attr("cy", d => this.yScale(d.inflow));
 
         }
@@ -495,25 +509,25 @@
 
         updateBarbells() {
 
-            this.gEnter
-                .merge(this.gEnter)
-                    .transition();
+            // this.gEnter
+            //     .merge(this.gEnter)
+            //         .transition();
 
-            this.lines
-                .merge(this.groups.select("line"))
-                    .transition()
-                    .attr("y1", d => this.yScale(d.outflow))
-                    .attr("y2", d => this.yScale(d.inflow));
+            // this.lines
+            //     .merge(this.groups.select("line"))
+            //         .transition()
+            //         .attr("y1", d => this.yScale(d.outflow))
+            //         .attr("y2", d => this.yScale(d.inflow));
 
-            this.circlesOut
-                .merge(this.groups.select('.circle-out'))
-                    .transition()
-                    .attr("cy", d => this.yScale(d.outflow));
+            // this.circlesOut
+            //     .merge(this.groups.select('.circle-out'))
+            //         .transition()
+            //         .attr("cy", d => this.yScale(d.outflow));
 
-            this.circlesIn
-                .merge(this.groups.select('.circle-in'))
-                    .transition()
-                    .attr("cy", d => this.yScale(d.inflow));
+            // this.circlesIn
+            //     .merge(this.groups.select('.circle-in'))
+            //         .transition()
+            //         .attr("cy", d => this.yScale(d.inflow));
 
         }
 
@@ -581,12 +595,12 @@
             chart.data = initializeData(data);
             chart.createScales();
             chart.createBarbells();
-            chart.updateBarbells();
+            // chart.updateBarbells();
         });
 
         d3.selectAll('button.scale').on('click', () => {
             chart.updateScales();
-            chart.updateBarbells();
+            chart.createBarbells();
             chart.updateButtonText();
         });
         
