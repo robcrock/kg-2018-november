@@ -212,8 +212,15 @@
                 .attr("height", this.svgHeight)
                 .attr("translate", `transform(${[this.margin.left, this.margin.top]})`);
 
-            this.plot = svg.selectAll("g").data([null])
+            this.plot = svg.selectAll("g").data([null]);
+            this.plot2 = svg.selectAll("g").data([null]);
+
             this.plotEnter = this.plot.enter().append('g')
+                .classed("plot", true)
+                .attr("translate", `transform(${[this.padding.left, this.padding.top]}))`);
+
+            this.plotEnter2 = this.plot.enter().append('g')
+                .classed("plot", true)
                 .attr("translate", `transform(${[this.padding.left, this.padding.top]}))`);
 
         }
@@ -258,10 +265,15 @@
                 .ticks(10, d3.format(",k"))
                 .tickSize( (this.margin.left + this.padding.left) - this.chartWidth * .85);
 
-            this.yAxisG = this.plot
-                .append("g")
+            // this.yAxisG = this.plot.selectAll("g");
+            
+            this.yAxisG = this.plotEnter.append('g')
                 .attr("class", "y-axis")
-                .attr("transform", `translate(${this.chartWidth}, 0 )`)
+                .attr("transform", `translate(${this.chartWidth}, 0 )`);
+
+            this.yAxisG.exit().remove();
+
+            this.yAxisG
                 .call(this.yAxis);
 
         }
@@ -275,7 +287,7 @@
             const tooltip = d3.select("#tooltip");
 
             // This is our UPDATE selection since it's the data join
-            this.groups = this.plotEnter.selectAll("g")
+            this.groups = this.plotEnter2.selectAll("g")
                 .data(this.data, d => d.country)
 
             this.groups.exit().remove();
@@ -491,14 +503,16 @@
                 .scale(this.yScale);
 
             this.yAxisG
+                .transition()
                 .call(this.yAxis);
+
 
         }
 
         updateButtonText() {
 
             if (document.querySelector("button.scale").textContent.includes("Log")) {
-
+                
                 document.querySelector("button.scale").textContent = "Change to Linear Scale";
 
             } else {
@@ -506,6 +520,16 @@
                 document.querySelector("button.scale").textContent = "Change to Log Scale";
 
             }
+
+            // if (document.querySelector("button.scale").textContent.includes("Log")) {
+
+            //     document.querySelector("button.scale").textContent = "Change to Linear Scale";
+
+            // } else {
+
+            //     document.querySelector("button.scale").textContent = "Change to Log Scale";
+
+            // }
 
         }
 
@@ -572,6 +596,7 @@
         d3.select('#country').on('change', () => {
             chart.data = initializeData(data);
             chart.createScales();
+            chart.createAxes();
             chart.gupBarbells();
         });
 
