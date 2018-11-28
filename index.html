@@ -198,8 +198,8 @@
 
             this.setup();
             this.createScales();
+            this.createDecorations();
             this.createAxes();
-            // this.createDecorations();
             this.gupBarbells();
 
         }
@@ -214,6 +214,9 @@
 
             this.plot = svg.selectAll("g").data([null]);
             this.plot2 = svg.selectAll("g").data([null]);
+            this.plot3 = svg.append('g')
+                .classed("plot", true)
+                .attr("translate", `transform(${[this.padding.left, this.padding.top]}))`);
 
             this.plotEnter = this.plot.enter().append('g')
                 .classed("plot", true)
@@ -408,7 +411,7 @@
             ///////////////////////////// VERTICAL DASHED LINES ////////////////////////////
             ////////////////////////////////////////////////////////////////////////////////
                 
-            this.plot
+            this.plot3
                 .append("line")
                     .classed("v-line", true)
                     .attr("x1", this.plotWidth - (this.padding.right + this.margin.right + 12))
@@ -420,7 +423,7 @@
             //////////////////////// LABELS BELOW THE VERTICAL LINES ///////////////////////
             ////////////////////////////////////////////////////////////////////////////////
 
-            this.plot
+            this.plot3
                 .append("line")
                     .classed("v-line", true)
                     .attr("x1", this.chartWidth * .25 + this.padding.left + this.margin.left)
@@ -428,7 +431,7 @@
                     .attr("x2", this.chartWidth * .25 + this.padding.left + this.margin.left)
                     .attr("y2", this.chartHeight);
             
-            const outflowLabel = this.plot
+            const outflowLabel = this.plot3
                 .append("text")
                 .classed("outflow-lable", true)
                 .attr("x", this.margin.left + this.padding.left + (this.chartWidth * .25))
@@ -455,7 +458,7 @@
                 });
             
 
-            const inflowLabel = this.plot
+            const inflowLabel = this.plot3
                 .append("text")
                 .classed("inflow-lable", true)
                 .attr("x", this.margin.left + this.padding.left + (this.chartWidth * .75))
