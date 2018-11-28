@@ -267,14 +267,17 @@
 
             // this.yAxisG = this.plot.selectAll("g");
             
-            this.yAxisG = this.plotEnter.append('g')
-                .attr("class", "y-axis")
-                .attr("transform", `translate(${this.chartWidth}, 0 )`);
+            this.yAxisG = this.plotEnter.selectAll('g').data([null]);
 
             this.yAxisG.exit().remove();
 
-            this.yAxisG
-                .call(this.yAxis);
+            this.yAxisGEnter = this.yAxisG.enter().append('g')
+                .attr("class", "y-axis")
+                .attr("transform", `translate(${this.chartWidth}, 0 )`)
+            
+            this.yAxisGEnter
+                .merge(this.yAxisG)
+                    .call(this.yAxis);
 
         }
 
@@ -520,16 +523,6 @@
                 document.querySelector("button.scale").textContent = "Change to Log Scale";
 
             }
-
-            // if (document.querySelector("button.scale").textContent.includes("Log")) {
-
-            //     document.querySelector("button.scale").textContent = "Change to Linear Scale";
-
-            // } else {
-
-            //     document.querySelector("button.scale").textContent = "Change to Log Scale";
-
-            // }
 
         }
 
