@@ -190,22 +190,6 @@
 
         draw() {
 
-            ////////////////////////////////////////////////////////////////////////////////
-            ///////////////////////////////// CLEAR THE SVG ////////////////////////////////
-            ////////////////////////////////////////////////////////////////////////////////
-
-            this.element.innerHTML = '';
-
-            this.setup();
-            this.createScales();
-            this.createDecorations();
-            this.createAxes();
-            this.gupBarbells();
-
-        }
-
-        setup() {
-
             const svg = d3.select(this.element)
                 .append('svg')
                 .attr("width", this.svgWidth)
@@ -213,7 +197,7 @@
                 .attr("translate", `transform(${[this.margin.left, this.margin.top]})`);
 
             this.plot = svg.selectAll("g").data([null]);
-            this.plot2 = svg.selectAll("g").data([null]);
+            // this.plot2 = svg.selectAll("g").data([null]);
             this.plot3 = svg.append('g')
                 .classed("plot", true)
                 .attr("translate", `transform(${[this.padding.left, this.padding.top]}))`);
@@ -226,14 +210,96 @@
                 .classed("plot", true)
                 .attr("translate", `transform(${[this.padding.left, this.padding.top]}))`);
 
+            this.addDecorations();
+            this.updateScales();
+            this.gupAxes();
+            this.gupBarbells();
+
         }
 
-        createScales() {
+        addDecorations() {
+
+            ////////////////////////////////////////////////////////////////////////////////
+            ///////////////////////////// VERTICAL DASHED LINES ////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////
+            this.plot3
+                .append("line")
+                    .classed("v-line", true)
+                    .attr("x1", this.plotWidth - (this.padding.right + this.margin.right + 12))
+                    .attr("y1", 0)
+                    .attr("x2", this.plotWidth - (this.padding.right + this.margin.right + 12))
+                    .attr("y2", this.chartHeight)
+
+            ////////////////////////////////////////////////////////////////////////////////
+            //////////////////////// LABELS BELOW THE VERTICAL LINES ///////////////////////
+            ////////////////////////////////////////////////////////////////////////////////
+            this.plot3
+                .append("line")
+                    .classed("v-line", true)
+                    .attr("x1", this.chartWidth * .25 + this.padding.left + this.margin.left)
+                    .attr("y1", 0)
+                    .attr("x2", this.chartWidth * .25 + this.padding.left + this.margin.left)
+                    .attr("y2", this.chartHeight);
+
+            const outflowLabel = this.plot3
+                .append("text")
+                .classed("outflow-lable", true)
+                .attr("x", this.margin.left + this.padding.left + (this.chartWidth * .25))
+                .attr("y", this.chartHeight)
+                .attr("dy", 30)
+                .text("OUTFLOW")
+                .on("mouseover.highlight", function(d) {
+                    d3.select(this)
+                        .style("opacity", 1);
+
+                    d3.selectAll(".neg")
+                        .style("opacity", 1);
+
+                    d3.selectAll(".pos")
+                        .style("opacity", .3);
+                    
+                })
+                .on("mouseout.highlight", function(d) {
+                    d3.select(this)
+                        .style("opacity", .5);
+
+                    d3.selectAll(".barbell")
+                        .style("opacity", .5);
+                });
+
+            const inflowLabel = this.plot3
+                .append("text")
+                .classed("inflow-lable", true)
+                .attr("x", this.margin.left + this.padding.left + (this.chartWidth * .75))
+                .attr("y", this.chartHeight)
+                .attr("dy", 30)
+                .text("INFLOW")
+                .on("mouseover.highlight", function(d) {
+                    d3.select(this)
+                        .style("opacity", 1);
+
+                    d3.selectAll(".pos")
+                        .style("opacity", 1);
+
+                    d3.selectAll(".neg")
+                        .style("opacity", .3);
+                    
+                })
+                .on("mouseout.highlight", function(d) {
+                    d3.select(this)
+                        .style("opacity", .5);
+
+                    d3.selectAll(".barbell")
+                        .style("opacity", .5);
+                });
+
+        }
+
+        updateScales() {
             
             ////////////////////////////////////////////////////////////////////////////////
             /////////////////// FIND THE MIN AND MAX OF ALL MOVEMENT ///////////////////////
             ////////////////////////////////////////////////////////////////////////////////
-
             const migration = [];
             for(const record of this.data) {
                 migration.push(record.outflow);
@@ -244,7 +310,6 @@
             ////////////////////////////////////////////////////////////////////////////////
             ////////////////////// SET SCALES BASED ON BUTTON TEXT /////////////////////////
             ////////////////////////////////////////////////////////////////////////////////
-
             if (document.querySelector("button.scale").textContent.includes("Linear")) {
 
                 this.yScale = d3.scaleLog()
@@ -261,14 +326,12 @@
 
         }
 
-        createAxes() {
+        gupAxes() {
 
             this.yAxis = d3.axisRight()
                 .scale(this.yScale)
                 .ticks(10, d3.format(",k"))
                 .tickSize( (this.margin.left + this.padding.left) - this.chartWidth * .85);
-
-            // this.yAxisG = this.plot.selectAll("g");
             
             this.yAxisG = this.plotEnter.selectAll('g').data([null]);
 
@@ -284,13 +347,7 @@
 
         }
 
-        ////////////////////////////////////////////////////////////////////////////////
-        ////////////////////////// General Update Pattern (GUP) ////////////////////////
-        ////////////////////////////////////////////////////////////////////////////////
-
         gupBarbells() {
-
-            const tooltip = d3.select("#tooltip");
 
             // This is our UPDATE selection since it's the data join
             this.groups = this.plotEnter2.selectAll("g")
@@ -333,6 +390,8 @@
             ////////////////////////////////////////////////////////////////////////////////
             //////////////////////////////// REVEAL TOOLTIPS ///////////////////////////////
             ////////////////////////////////////////////////////////////////////////////////
+            const tooltip = d3.select("#tooltip");
+
             this.gEnter
                 .on("mousemove.tooltip", function(d) {
 
@@ -405,118 +464,7 @@
 
         }
 
-        createDecorations() {
-
-            ////////////////////////////////////////////////////////////////////////////////
-            ///////////////////////////// VERTICAL DASHED LINES ////////////////////////////
-            ////////////////////////////////////////////////////////////////////////////////
-                
-            this.plot3
-                .append("line")
-                    .classed("v-line", true)
-                    .attr("x1", this.plotWidth - (this.padding.right + this.margin.right + 12))
-                    .attr("y1", 0)
-                    .attr("x2", this.plotWidth - (this.padding.right + this.margin.right + 12))
-                    .attr("y2", this.chartHeight)
-
-            ////////////////////////////////////////////////////////////////////////////////
-            //////////////////////// LABELS BELOW THE VERTICAL LINES ///////////////////////
-            ////////////////////////////////////////////////////////////////////////////////
-
-            this.plot3
-                .append("line")
-                    .classed("v-line", true)
-                    .attr("x1", this.chartWidth * .25 + this.padding.left + this.margin.left)
-                    .attr("y1", 0)
-                    .attr("x2", this.chartWidth * .25 + this.padding.left + this.margin.left)
-                    .attr("y2", this.chartHeight);
-            
-            const outflowLabel = this.plot3
-                .append("text")
-                .classed("outflow-lable", true)
-                .attr("x", this.margin.left + this.padding.left + (this.chartWidth * .25))
-                .attr("y", this.chartHeight)
-                .attr("dy", 30)
-                .text("OUTFLOW")
-                .on("mouseover.highlight", function(d) {
-                    d3.select(this)
-                        .style("opacity", 1);
-
-                    d3.selectAll(".neg")
-                        .style("opacity", 1);
-
-                    d3.selectAll(".pos")
-                        .style("opacity", .3);
-                    
-                })
-                .on("mouseout.highlight", function(d) {
-                    d3.select(this)
-                        .style("opacity", .5);
-
-                    d3.selectAll(".barbell")
-                        .style("opacity", .5);
-                });
-            
-
-            const inflowLabel = this.plot3
-                .append("text")
-                .classed("inflow-lable", true)
-                .attr("x", this.margin.left + this.padding.left + (this.chartWidth * .75))
-                .attr("y", this.chartHeight)
-                .attr("dy", 30)
-                .text("INFLOW")
-                .on("mouseover.highlight", function(d) {
-                    d3.select(this)
-                        .style("opacity", 1);
-
-                    d3.selectAll(".pos")
-                        .style("opacity", 1);
-
-                    d3.selectAll(".neg")
-                        .style("opacity", .3);
-                    
-                })
-                .on("mouseout.highlight", function(d) {
-                    d3.select(this)
-                        .style("opacity", .5);
-
-                    d3.selectAll(".barbell")
-                        .style("opacity", .5);
-                });
-
-        }
-
-        updateScales() {
-
-            if (document.querySelector("button.scale").textContent.includes("Log")) {
-
-                this.yScale = d3.scaleLog()
-                    .domain([this.minM, this.maxM])
-                    .range([this.chartHeight, this.margin.top + this.padding.top]);
-
-                this.yAxis
-                    .ticks(10, d3.format(",k"));
-
-            } else {
-
-                this.yScale = d3.scaleLinear()
-                    .domain([this.minM, this.maxM])
-                    .range([this.chartHeight, this.margin.top + this.padding.top]);
-
-            }
-
-            this.yAxis
-                .scale(this.yScale);
-
-            this.yAxisG
-                .transition()
-                .call(this.yAxis);
-
-
-        }
-
         updateButtonText() {
-
             if (document.querySelector("button.scale").textContent.includes("Log")) {
                 
                 document.querySelector("button.scale").textContent = "Change to Linear Scale";
@@ -526,7 +474,6 @@
                 document.querySelector("button.scale").textContent = "Change to Log Scale";
 
             }
-
         }
 
     }
@@ -591,13 +538,14 @@
         
         d3.select('#country').on('change', () => {
             chart.data = initializeData(data);
-            chart.createScales();
-            chart.createAxes();
+            chart.updateScales();
+            chart.gupAxes();
             chart.gupBarbells();
         });
 
         d3.selectAll('button.scale').on('click', () => {
             chart.updateScales();
+            chart.gupAxes();
             chart.gupBarbells();
             chart.updateButtonText();
         });
