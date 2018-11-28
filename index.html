@@ -200,7 +200,7 @@
             this.createScales();
             this.createAxes();
             // this.createDecorations();
-            this.createBarbells();
+            this.gupBarbells();
 
         }
 
@@ -266,7 +266,11 @@
 
         }
 
-        createBarbells() {
+        ////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////// General Update Pattern (GUP) ////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////
+
+        gupBarbells() {
 
             const tooltip = d3.select("#tooltip");
 
@@ -277,81 +281,79 @@
             this.groups.exit().remove();
 
             this.gEnter = this.groups.enter().append("g")
-                .attr("class", d => `${d["pos-or-neg"]} barbell`);
+                .attr("class", d => `${d["pos-or-neg"]} barbell`)
+                .style("opacity", .5);
 
             this.gEnter
                 .merge(this.gEnter)
                     .transition();
 
-            // Hightlight the active barbell
-            // this.barbellG
-                // // Dim other marks to bring the hover mark into focus
-                // .on("mouseover.highlight", function(d) {
+            ////////////////////////////////////////////////////////////////////////////////
+            //////////////////////////// HIGHLIGHT ACTIVE BARBELLS /////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////
+            this.gEnter
+                // Dim other marks to bring the hover mark into focus
+                .on("mouseover.highlight", function(d) {
 
-                //     this.classList.add("hovered")
+                    this.classList.add("hovered")
 
-                //     d3.selectAll(".barbell")
-                //     .style("opacity", .3);
+                    d3.selectAll(".barbell")
+                    .style("opacity", .3);
 
-                //     d3.select(".hovered")
-                //     .style("opacity", 1);
+                    d3.select(".hovered")
+                    .style("opacity", 1);
 
-                // })
-                // // Reset to the default
-                // .on("mouseout.highlight", function(d) {                    
-                //     this.classList.remove("hovered")
+                })
+                // Reset to the default
+                .on("mouseout.highlight", function(d) {                    
+                    this.classList.remove("hovered")
 
-                //     d3.selectAll(".barbell")
-                //         .style("opacity", .5);
-                // })
+                    d3.selectAll(".barbell")
+                        .style("opacity", .5);
+                })
 
-            // // Reveal the tooltip next to the mouse
-            // this.barbellG
-            //     .on("mousemove.tooltip", function(d) {
+            ////////////////////////////////////////////////////////////////////////////////
+            //////////////////////////////// REVEAL TOOLTIPS ///////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////
+            this.gEnter
+                .on("mousemove.tooltip", function(d) {
 
-            //         tooltip.transition()
-            //             .style("display", "block")
-            //             .style("opacity", .9);
+                    tooltip.transition()
+                        .style("display", "block")
+                        .style("opacity", .9);
 
-            //         const commaFormat = d3.format(",");
+                    const commaFormat = d3.format(",");
 
-            //         // Positioning the tooltip to the bottom right of your cursor
-            //         tooltip
-            //             .style("position", "fixed")
-            //             .style("left", d3.event.clientX + 20)
-            //             .style("top", d3.event.clientY + 20);
+                    // Positioning the tooltip to the bottom right of your cursor
+                    tooltip
+                        .style("position", "fixed")
+                        .style("left", d3.event.clientX + 20)
+                        .style("top", d3.event.clientY + 20);
 
-            //         // Creating the country header
-            //         tooltip.select(".tt-header")
-            //             .text(d.country);
+                    // Creating the country header
+                    tooltip.select(".tt-header")
+                        .text(d.country);
 
-            //         // Add the the subtitle of Net value
-            //         tooltip.select("#net")
-            //             .text(`Net ${commaFormat(d.net)}`)
+                    // Add the the subtitle of Net value
+                    tooltip.select("#net")
+                        .text(`Net ${commaFormat(d.net)}`)
                     
-            //         // Insert row of data for Outflow
-            //         tooltip.select("#outflow").select(".left")
-            //             .text("OUTFLOW")
-            //         tooltip.select("#outflow").select(".right")
-            //             .text(commaFormat(d.outflow))
+                    // Insert row of data for Outflow
+                    tooltip.select("#outflow").select(".left")
+                        .text("OUTFLOW")
+                    tooltip.select("#outflow").select(".right")
+                        .text(commaFormat(d.outflow))
 
-            //         // Insert row of data for Inflow
-            //         tooltip.select("#inflow").select(".left")
-            //             .text("INFLOW")
-            //         tooltip.select("#inflow").select(".right")
-            //             .text(commaFormat(d.inflow))
+                    // Insert row of data for Inflow
+                    tooltip.select("#inflow").select(".left")
+                        .text("INFLOW")
+                    tooltip.select("#inflow").select(".right")
+                        .text(commaFormat(d.inflow))
 
-            //     })
-            //     .on("mouseout.tooltip", function() {
-            //         tooltip.style("display", "none");
-            //     });
-
-            // this.barbellG(".barbell")
-            //     .data(this.data, d => d.country)
-            //     .enter()
-            //     .append("g")
-            //     .attr("class", d => `barbell ${d["pos-or-neg"]}`)
-            //     .style("opacity", .5);
+                })
+                .on("mouseout.tooltip", function() {
+                    tooltip.style("display", "none");
+                });
 
                 
             this.lines = this.gEnter.append("line")
@@ -507,30 +509,6 @@
 
         }
 
-        updateBarbells() {
-
-            // this.gEnter
-            //     .merge(this.gEnter)
-            //         .transition();
-
-            // this.lines
-            //     .merge(this.groups.select("line"))
-            //         .transition()
-            //         .attr("y1", d => this.yScale(d.outflow))
-            //         .attr("y2", d => this.yScale(d.inflow));
-
-            // this.circlesOut
-            //     .merge(this.groups.select('.circle-out'))
-            //         .transition()
-            //         .attr("cy", d => this.yScale(d.outflow));
-
-            // this.circlesIn
-            //     .merge(this.groups.select('.circle-in'))
-            //         .transition()
-            //         .attr("cy", d => this.yScale(d.inflow));
-
-        }
-
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -594,13 +572,12 @@
         d3.select('#country').on('change', () => {
             chart.data = initializeData(data);
             chart.createScales();
-            chart.createBarbells();
-            // chart.updateBarbells();
+            chart.gupBarbells();
         });
 
         d3.selectAll('button.scale').on('click', () => {
             chart.updateScales();
-            chart.createBarbells();
+            chart.gupBarbells();
             chart.updateButtonText();
         });
         
