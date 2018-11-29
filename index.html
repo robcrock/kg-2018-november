@@ -96,22 +96,22 @@
             stroke: #9C454C;
         }
 
-        .line{
+        .barbell line{
             stroke-width: 3;
         }
-        .line{
+        .barbell line{
             stroke-width: 3;
         }
-        .pos.circle-out {
+        .pos circle {
             fill: #4577A3;
         }
-        .neg.circle-out {
+        .neg circle {
             fill: #9C454C;
         }
-        .pos.circle-in {
+        .pos circle {
             fill: #4577A3;
         }
-        .neg.circle-in {
+        .neg circle {
             fill: #9C454C;
         }
 
@@ -197,17 +197,16 @@
                 .attr("translate", `transform(${[this.margin.left, this.margin.top]})`);
 
             this.plot = svg.selectAll("g").data([null]);
-            // this.plot2 = svg.selectAll("g").data([null]);
-            this.plot3 = svg.append('g')
-                .classed("plot", true)
+            this.plot2 = svg.append('g')
+                .classed("decoration-layer", true)
                 .attr("translate", `transform(${[this.padding.left, this.padding.top]}))`);
 
             this.plotEnter = this.plot.enter().append('g')
-                .classed("plot", true)
+                .classed("axis-layer", true)
                 .attr("translate", `transform(${[this.padding.left, this.padding.top]}))`);
 
             this.plotEnter2 = this.plot.enter().append('g')
-                .classed("plot", true)
+                .classed("mark-layer", true)
                 .attr("translate", `transform(${[this.padding.left, this.padding.top]}))`);
 
             this.addDecorations();
@@ -222,7 +221,7 @@
             ////////////////////////////////////////////////////////////////////////////////
             ///////////////////////////// VERTICAL DASHED LINES ////////////////////////////
             ////////////////////////////////////////////////////////////////////////////////
-            this.plot3
+            this.plot2
                 .append("line")
                     .classed("v-line", true)
                     .attr("x1", this.plotWidth - (this.padding.right + this.margin.right + 12))
@@ -233,7 +232,7 @@
             ////////////////////////////////////////////////////////////////////////////////
             //////////////////////// LABELS BELOW THE VERTICAL LINES ///////////////////////
             ////////////////////////////////////////////////////////////////////////////////
-            this.plot3
+            this.plot2
                 .append("line")
                     .classed("v-line", true)
                     .attr("x1", this.chartWidth * .25 + this.padding.left + this.margin.left)
@@ -241,7 +240,7 @@
                     .attr("x2", this.chartWidth * .25 + this.padding.left + this.margin.left)
                     .attr("y2", this.chartHeight);
 
-            const outflowLabel = this.plot3
+            const outflowLabel = this.plot2
                 .append("text")
                 .classed("outflow-lable", true)
                 .attr("x", this.margin.left + this.padding.left + (this.chartWidth * .25))
@@ -260,14 +259,11 @@
                     
                 })
                 .on("mouseout.highlight", function(d) {
-                    d3.select(this)
-                        .style("opacity", .5);
-
                     d3.selectAll(".barbell")
                         .style("opacity", .5);
                 });
 
-            const inflowLabel = this.plot3
+            const inflowLabel = this.plot2
                 .append("text")
                 .classed("inflow-lable", true)
                 .attr("x", this.margin.left + this.padding.left + (this.chartWidth * .75))
@@ -286,11 +282,13 @@
                     
                 })
                 .on("mouseout.highlight", function(d) {
-                    d3.select(this)
+
+                    d3.selectAll(".pos")
                         .style("opacity", .5);
 
-                    d3.selectAll(".barbell")
+                    d3.selectAll(".neg")
                         .style("opacity", .5);
+
                 });
 
         }
@@ -311,19 +309,14 @@
             ////////////////////// SET SCALES BASED ON BUTTON TEXT /////////////////////////
             ////////////////////////////////////////////////////////////////////////////////
             if (document.querySelector("button.scale").textContent.includes("Linear")) {
-
                 this.yScale = d3.scaleLog()
                     .domain([this.minM, this.maxM])
                     .range([this.chartHeight, this.margin.top + this.padding.top]);
-
             } else {
-
                 this.yScale = d3.scaleLinear()
                     .domain([this.minM, this.maxM])
                     .range([this.chartHeight, this.margin.top + this.padding.top]);
-
             }
-
         }
 
         gupAxes() {
@@ -335,14 +328,17 @@
             
             this.yAxisG = this.plotEnter.selectAll('g').data([null]);
 
-            this.yAxisG.exit().remove();
-
             this.yAxisGEnter = this.yAxisG.enter().append('g')
                 .attr("class", "y-axis")
                 .attr("transform", `translate(${this.chartWidth}, 0 )`)
-            
+     
+            const t = d3.transition().duration(750);
+
+            this.yAxisGEnter.exit().transition(t).remove();
+
             this.yAxisGEnter
                 .merge(this.yAxisG)
+                    .transition(t)
                     .call(this.yAxis);
 
         }
@@ -360,8 +356,7 @@
                 .style("opacity", .5);
 
             this.gEnter
-                .merge(this.gEnter)
-                    .transition();
+                .merge(this.gEnter);
 
             ////////////////////////////////////////////////////////////////////////////////
             //////////////////////////// HIGHLIGHT ACTIVE BARBELLS /////////////////////////
@@ -432,34 +427,34 @@
                     tooltip.style("display", "none");
                 });
 
-                
+            const t = d3.transition().duration(750);
+
             this.lines = this.gEnter.append("line")
-                    .attr("class", d => `${d["pos-or-neg"]} line `)
                     .attr("x1", this.margin.left + this.padding.left + (this.chartWidth * .25))
                     .attr("x2", this.margin.left + this.padding.left + (this.chartWidth * .75))
                     .attr("y1", d => this.yScale(d.outflow))
                     .attr("y2", d => this.yScale(d.inflow))
                 .merge(this.groups.select("line"))
-                    .transition()
+                    .transition(t)
                     .attr("y1", d => this.yScale(d.outflow))
                     .attr("y2", d => this.yScale(d.inflow));
 
             this.circlesOut = this.gEnter.append("circle")
-                    .attr("class", d => `${d["pos-or-neg"]} circle-out`)
+                    .classed("circle-out", true)
                     .attr("r", 4)
                     .attr("cx", this.margin.left + this.padding.left + (this.chartWidth * .25))
                     .attr("cy", d => this.yScale(d.outflow))
                 .merge(this.groups.select('.circle-out'))
-                    .transition()
+                    .transition(t)
                     .attr("cy", d => this.yScale(d.outflow));
 
             this.circlesIn = this.gEnter.append("circle")
-                    .attr("class", d => `${d["pos-or-neg"]} circle-in`)
+                    .classed("circle-in", true)
                     .attr("r", 4)
                     .attr("cx", this.margin.left + this.padding.left + (this.chartWidth * .75))
                     .attr("cy", d => this.yScale(d.inflow))
                 .merge(this.groups.select('.circle-in'))
-                    .transition()
+                    .transition(t)
                     .attr("cy", d => this.yScale(d.inflow));
 
         }
@@ -544,10 +539,10 @@
         });
 
         d3.selectAll('button.scale').on('click', () => {
+            chart.updateButtonText();
             chart.updateScales();
             chart.gupAxes();
             chart.gupBarbells();
-            chart.updateButtonText();
         });
         
     })
